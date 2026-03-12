@@ -14,6 +14,7 @@ const MOCK_SESSION: PortalSession = {
   name: 'Alphanaut',
   role: 'alphanaut',
   blocks: [],
+  navigatorBlocks: [],
 };
 
 export default function ProfilePortalPage() {
