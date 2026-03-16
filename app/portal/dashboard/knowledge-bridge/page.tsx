@@ -371,7 +371,7 @@ export default function KnowledgeBridgePortalPage() {
         <div className="glass-card rounded-2xl p-6 portal-reveal portal-stagger-1">
           <h1 className="text-2xl font-bold font-grotesk text-white">Knowledge Bridge Workflow</h1>
           <p className="text-sm text-slate-400 mt-1">
-            Translation teams -> Translation navigator -> Simplification teams -> Simplification navigator -> Admin publish.
+            Translation teams -&gt; Translation navigator -&gt; Simplification teams -&gt; Simplification navigator -&gt; Admin publish.
           </p>
           <BlockPulseStrip
             items={[

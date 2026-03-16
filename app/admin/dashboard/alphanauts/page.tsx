@@ -677,7 +677,7 @@ export default function AdminAlphanauts() {
                 </button>
               </div>
 
-              <p className="text-xs text-slate-500 mb-3">Click each block to cycle: None -> Member -> Navigator -> None</p>
+              <p className="text-xs text-slate-500 mb-3">Click each block to cycle: None -&gt; Member -&gt; Navigator -&gt; None</p>
               <div className="flex flex-wrap gap-2">
                 {blockChoices.map((b) => {
                   const isMember = editMemberBlocks.includes(b.id);
