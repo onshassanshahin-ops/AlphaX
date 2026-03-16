@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, FileText, RefreshCw, Check, X, Eye, Download, Search, Filter } from 'lucide-react';
+import { ArrowLeft, FileText, RefreshCw, Check, X, Eye, Download, Search, Filter, Users, Workflow } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Paper {
@@ -20,6 +20,25 @@ interface Paper {
   published_at?: string;
   created_at: string;
   submitter?: { id: string; name: string };
+}
+
+interface MemberOption {
+  id: string;
+  name: string;
+}
+
+interface SectionNavigator {
+  section: 'translation' | 'simplification';
+  alphanaut_id: string | null;
+  alphanaut?: { id: string; name: string };
+}
+
+interface KbWorkflow {
+  id: string;
+  title_ar: string;
+  status: string;
+  admin_notes?: string | null;
+  paper_id?: string | null;
 }
 
 const STATUS_FILTERS = ['all', 'under_review', 'published', 'draft', 'rejected'];
@@ -49,6 +68,13 @@ export default function AdminKnowledgeBridge() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [kbMembers, setKbMembers] = useState<MemberOption[]>([]);
+  const [sectionNavigators, setSectionNavigators] = useState<SectionNavigator[]>([]);
+  const [reviewWorkflows, setReviewWorkflows] = useState<KbWorkflow[]>([]);
+  const [sectionSelection, setSectionSelection] = useState<Record<'translation' | 'simplification', string>>({
+    translation: '',
+    simplification: '',
+  });
 
   const fetchPapers = useCallback(async () => {
     setLoading(true);
@@ -68,6 +94,70 @@ export default function AdminKnowledgeBridge() {
   }, [statusFilter, fieldFilter, search]);
 
   useEffect(() => { fetchPapers(); }, [fetchPapers]);
+
+  const fetchKbWorkflowData = useCallback(async () => {
+    const [membersRes, navRes, workflowRes] = await Promise.all([
+      fetch('/api/blocks/knowledge-bridge/members'),
+      fetch('/api/knowledge-bridge/section-navigators'),
+      fetch('/api/knowledge-bridge/workflows?status=admin_review'),
+    ]);
+
+    if (membersRes.ok) {
+      const membersData = await membersRes.json();
+      setKbMembers((membersData.members || []).map((m: any) => ({ id: m.id, name: m.name })));
+    }
+
+    if (navRes.ok) {
+      const navData = await navRes.json();
+      const navs = navData.sectionNavigators || [];
+      setSectionNavigators(navs);
+      setSectionSelection({
+        translation: navs.find((n: SectionNavigator) => n.section === 'translation')?.alphanaut_id || '',
+        simplification: navs.find((n: SectionNavigator) => n.section === 'simplification')?.alphanaut_id || '',
+      });
+    }
+
+    if (workflowRes.ok) {
+      const workflowData = await workflowRes.json();
+      setReviewWorkflows(workflowData.workflows || []);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchKbWorkflowData();
+  }, [fetchKbWorkflowData]);
+
+  const assignSectionNavigator = async (section: 'translation' | 'simplification') => {
+    const selected = sectionSelection[section] || null;
+    const res = await fetch('/api/knowledge-bridge/section-navigators', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ section, alphanaut_id: selected }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error || 'Failed to assign section navigator');
+      return;
+    }
+    toast.success('Section navigator updated');
+    fetchKbWorkflowData();
+  };
+
+  const runAdminWorkflowAction = async (id: string, action: 'admin_approve' | 'admin_request_changes' | 'admin_reject') => {
+    const res = await fetch(`/api/knowledge-bridge/workflows/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error || 'Action failed');
+      return;
+    }
+    toast.success('Workflow updated');
+    fetchKbWorkflowData();
+    fetchPapers();
+  };
 
   const updatePaper = async (id: string, updates: Record<string, unknown>) => {
     setProcessing(id);
@@ -123,6 +213,81 @@ export default function AdminKnowledgeBridge() {
       </nav>
 
       <div className="p-6 max-w-6xl mx-auto space-y-5">
+        {/* Section Navigator Assignment */}
+        <div className="glass-card rounded-2xl p-4">
+          <h2 className="text-sm font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+            <Users size={15} className="text-cyan" />
+            Knowledge Bridge Section Navigators
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(['translation', 'simplification'] as const).map((section) => (
+              <div key={section} className="p-3 rounded-xl border border-white/10 bg-dark/50">
+                <p className="text-xs text-slate-500 uppercase tracking-widest mb-2">{section}</p>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={sectionSelection[section]}
+                    onChange={(e) => setSectionSelection((s) => ({ ...s, [section]: e.target.value }))}
+                    className="flex-1 form-input rounded-xl px-3 py-2 text-sm border border-cyan/20 bg-dark/80"
+                  >
+                    <option value="">Select navigator...</option>
+                    {kbMembers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => assignSectionNavigator(section)}
+                    className="px-3 py-2 rounded-lg text-xs font-semibold border border-cyan/30 text-cyan hover:bg-cyan/10"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Admin Final Review Queue */}
+        <div className="glass-card rounded-2xl p-4">
+          <h2 className="text-sm font-bold font-grotesk text-white mb-3 flex items-center gap-2">
+            <Workflow size={15} className="text-gold" />
+            Workflow Final Review ({reviewWorkflows.length})
+          </h2>
+          {reviewWorkflows.length === 0 ? (
+            <p className="text-sm text-slate-500">No workflow cards pending admin review.</p>
+          ) : (
+            <div className="space-y-2">
+              {reviewWorkflows.map((wf) => (
+                <div key={wf.id} className="p-3 rounded-xl border border-white/10 bg-dark/50 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-white font-semibold" dir="rtl">{wf.title_ar}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{wf.status}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => runAdminWorkflowAction(wf.id, 'admin_approve')}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-green-300 border border-green-500/30 hover:bg-green-500/10"
+                    >
+                      Approve & Publish
+                    </button>
+                    <button
+                      onClick={() => runAdminWorkflowAction(wf.id, 'admin_request_changes')}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-yellow-300 border border-yellow-500/30 hover:bg-yellow-500/10"
+                    >
+                      Send Back
+                    </button>
+                    <button
+                      onClick={() => runAdminWorkflowAction(wf.id, 'admin_reject')}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-300 border border-red-500/30 hover:bg-red-500/10"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Filters */}
         <div className="glass-card rounded-2xl p-4 space-y-3">
           <div className="flex flex-wrap gap-2">

@@ -92,6 +92,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (portalSession && !adminSession) {
+    const isResearchNavigator =
+      portalSession.role === 'co-captain' ||
+      (portalSession.navigatorBlocks || []).includes('asclepius-lab') ||
+      (portalSession.navigatorBlocks || []).includes('neuroscience');
+
+    if (!isResearchNavigator) {
+      return NextResponse.json(
+        { error: 'Only research navigators can create research projects.' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const body = await request.json();
     const {

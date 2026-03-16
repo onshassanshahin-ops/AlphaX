@@ -6,7 +6,10 @@ import TasksPanel from '@/components/portal/TasksPanel';
 import InitiativesPanel from '@/components/portal/InitiativesPanel';
 import SuggestionsPanel from '@/components/portal/SuggestionsPanel';
 import BlockMembersPanel from '@/components/portal/BlockMembersPanel';
-import { Users, BarChart2 } from 'lucide-react';
+import BlockPulseStrip from '@/components/portal/BlockPulseStrip';
+import RoleJourneyPanel from '@/components/portal/RoleJourneyPanel';
+import NextActionsCard from '@/components/portal/NextActionsCard';
+import { Radar, Briefcase, Route, ShieldCheck } from 'lucide-react';
 
 async function getBlockMembers(blockSlug: string) {
   const { data: block } = await supabaseAdmin.from('blocks').select('id').eq('slug', blockSlug).single();
@@ -16,6 +19,39 @@ async function getBlockMembers(blockSlug: string) {
     .select('alphanauts(id, name)')
     .eq('block_id', block.id);
   return (data || []).map((r: { alphanauts: unknown }) => r.alphanauts).filter(Boolean) as { id: string; name: string }[];
+}
+
+async function getOpsPulse(blockSlug: string, alphanautId: string) {
+  const [myTasksRes, activeTasksRes, activeSuggestionsRes, activeInitiativesRes] = await Promise.all([
+    supabaseAdmin
+      .from('block_tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('block_slug', blockSlug)
+      .eq('assigned_to', alphanautId)
+      .in('status', ['pending', 'in_progress']),
+    supabaseAdmin
+      .from('block_tasks')
+      .select('id', { count: 'exact', head: true })
+      .eq('block_slug', blockSlug)
+      .in('status', ['pending', 'in_progress']),
+    supabaseAdmin
+      .from('block_suggestions')
+      .select('id', { count: 'exact', head: true })
+      .eq('block_slug', blockSlug)
+      .in('status', ['open', 'under_review']),
+    supabaseAdmin
+      .from('block_initiatives')
+      .select('id', { count: 'exact', head: true })
+      .eq('block_slug', blockSlug)
+      .in('status', ['open', 'in_progress']),
+  ]);
+
+  return {
+    myQueue: myTasksRes.count || 0,
+    blockQueue: activeTasksRes.count || 0,
+    openSuggestions: activeSuggestionsRes.count || 0,
+    liveInitiatives: activeInitiativesRes.count || 0,
+  };
 }
 
 export default async function OperationsPortalPage() {
@@ -35,13 +71,19 @@ export default async function OperationsPortalPage() {
     (session.navigatorBlocks || []).includes('operations') ||
     (session.navigatorBlocks || []).includes('engineering');
 
-  const blockMembers = await getBlockMembers(blockSlug);
+  const [blockMembers, pulse] = await Promise.all([
+    getBlockMembers(blockSlug),
+    getOpsPulse(blockSlug, session.alphanaut_id),
+  ]);
 
   return (
     <PortalLayout session={session}>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden rounded-3xl p-7 border border-slate-400/30 bg-gradient-to-r from-[#151c2b] via-dark to-[#121b2a] portal-reveal portal-stagger-1">
+          <div className="absolute -right-16 -top-16 w-72 h-72 rounded-full bg-cyan/10 blur-3xl" />
+          <div className="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-slate-500/10 blur-3xl" />
+          <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-slate-500/20 border border-slate-500/30 flex items-center justify-center text-xl">
               ⚙️
@@ -60,26 +102,83 @@ export default async function OperationsPortalPage() {
               ⭐ Navigator
             </span>
           )}
+          </div>
+          <BlockPulseStrip
+            items={[
+              { label: 'My Queue', value: pulse.myQueue, tone: 'cyan' },
+              { label: 'Block Queue', value: pulse.blockQueue, tone: 'slate' },
+              { label: 'Open Suggestions', value: pulse.openSuggestions, tone: 'purple' },
+              { label: 'Live Initiatives', value: pulse.liveInitiatives, tone: 'yellow' },
+            ]}
+          />
         </div>
 
         {isNavigator ? (
           /* ── NAVIGATOR VIEW ── */
           <>
+            <RoleJourneyPanel
+              title="Navigator Ops Radar"
+              icon={Radar}
+              iconClassName="text-cyan"
+              containerClassName="border border-slate-400/20"
+              items={[
+                { title: 'Prioritize Bottlenecks', desc: 'Move urgent pending tasks into active owners before day-end.' },
+                { title: 'Convert Suggestions', desc: 'Promising ideas should become initiatives with clear deadlines.' },
+                { title: 'Stabilize Throughput', desc: 'Balance task load across the team to avoid single-point overload.' },
+              ]}
+            />
+
+            <NextActionsCard
+              title="Navigator Priority Actions"
+              icon={ShieldCheck}
+              iconClassName="text-cyan"
+              containerClassName="border border-cyan/20 bg-cyan/10"
+              actions={[
+                { title: 'Unblock One Critical Task', hint: 'Resolve one dependency bottleneck before creating new work.', href: '#ops-tasks', actionLabel: 'Open Tasks' },
+                { title: 'Promote One Suggestion', hint: 'Move one valuable suggestion into initiative execution.', href: '#ops-suggestions', actionLabel: 'Open Suggestions' },
+                { title: 'Update Ownership Map', hint: 'Ensure each active task has one clear accountable owner.', href: '#ops-initiatives', actionLabel: 'Open Initiatives' },
+              ]}
+            />
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <TasksPanel blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={true} blockMembers={blockMembers} />
-              <SuggestionsPanel blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={true} />
+              <TasksPanel panelId="ops-tasks" blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={true} blockMembers={blockMembers} />
+              <SuggestionsPanel panelId="ops-suggestions" blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={true} />
             </div>
-            <InitiativesPanel blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={true} />
+            <InitiativesPanel panelId="ops-initiatives" blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={true} />
           </>
         ) : (
           /* ── ALPHANAUT VIEW ── */
           <>
+            <RoleJourneyPanel
+              title="Your Mission Flow"
+              icon={Route}
+              iconClassName="text-cyan"
+              containerClassName="border border-slate-400/20"
+              items={[
+                { title: 'Accept Scope', desc: 'Pick one task and clarify acceptance criteria with your navigator early.' },
+                { title: 'Deliver Update', desc: 'Use suggestions for blockers and propose process improvements fast.' },
+                { title: 'Close Loop', desc: 'When done, summarize result and next dependency for the team.' },
+              ]}
+            />
+
+            <NextActionsCard
+              title="Your Next Ops Steps"
+              icon={ShieldCheck}
+              iconClassName="text-cyan"
+              containerClassName="border border-cyan/20 bg-cyan/10"
+              actions={[
+                { title: 'Pick Highest Priority Task', hint: 'Start where impact and urgency are both high.', href: '#ops-tasks', actionLabel: 'Go to Tasks' },
+                { title: 'Report Blockers Early', hint: 'Use suggestions to flag dependency issues quickly.', href: '#ops-suggestions', actionLabel: 'Go to Suggestions' },
+                { title: 'Document Outcome', hint: 'After completion, add a concise handoff note.', href: '#ops-initiatives', actionLabel: 'Go to Initiatives' },
+              ]}
+            />
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <BlockMembersPanel blockSlug={blockSlug} currentAlphanautId={session.alphanaut_id} />
-              <TasksPanel blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={false} />
+              <TasksPanel panelId="ops-tasks" blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={false} />
             </div>
-            <SuggestionsPanel blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={false} />
-            <InitiativesPanel blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={false} />
+            <SuggestionsPanel panelId="ops-suggestions" blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={false} />
+            <InitiativesPanel panelId="ops-initiatives" blockSlug={blockSlug} alphanautId={session.alphanaut_id} isNavigator={false} />
           </>
         )}
 
@@ -87,7 +186,7 @@ export default async function OperationsPortalPage() {
         {session.blocks.includes('engineering') && (
           <div className="glass-card rounded-2xl p-6 border-blue-500/20">
             <h2 className="text-lg font-bold font-grotesk text-white mb-4 flex items-center gap-2">
-              💻 Engineering Resources
+              <Briefcase size={17} className="text-cyan" /> Engineering Resources
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
@@ -102,6 +201,12 @@ export default async function OperationsPortalPage() {
                   <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
                 </div>
               ))}
+            </div>
+            <div className="mt-4 p-4 rounded-xl border border-cyan/20 bg-cyan/10 flex items-start gap-3">
+              <ShieldCheck size={16} className="text-cyan mt-0.5" />
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Engineering quality gate: each delivery should include impact note, rollback plan, and owner handoff details.
+              </p>
             </div>
           </div>
         )}

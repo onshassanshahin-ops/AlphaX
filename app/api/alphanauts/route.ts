@@ -120,21 +120,58 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, ...updates } = body;
+    const { id, blocks, navigatorBlockIds, ...updates } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
-    const { data, error } = await supabaseAdmin
+    if (Object.keys(updates).length > 0) {
+      const { error } = await supabaseAdmin
+        .from('alphanauts')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+    }
+
+    if (Array.isArray(blocks)) {
+      await supabaseAdmin.from('alphanaut_blocks').delete().eq('alphanaut_id', id);
+
+      if (blocks.length > 0) {
+        const navSet = new Set(Array.isArray(navigatorBlockIds) ? navigatorBlockIds : []);
+        const blockRows = blocks.map((blockId: string) => ({
+          alphanaut_id: id,
+          block_id: blockId,
+          role: navSet.has(blockId) ? 'navigator' : 'member',
+        }));
+
+        const { error: blockInsertError } = await supabaseAdmin
+          .from('alphanaut_blocks')
+          .insert(blockRows);
+
+        if (blockInsertError) {
+          return NextResponse.json({ error: blockInsertError.message }, { status: 500 });
+        }
+      }
+    }
+
+    const { data, error: fetchError } = await supabaseAdmin
       .from('alphanauts')
-      .update(updates)
+      .select(`
+        *,
+        alphanaut_blocks (
+          id, role, joined_at,
+          blocks (id, slug, name, color, icon)
+        )
+      `)
       .eq('id', id)
-      .select()
       .single();
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (fetchError) {
+      return NextResponse.json({ error: fetchError.message }, { status: 500 });
     }
 
     return NextResponse.json({ alphanaut: data });

@@ -10,6 +10,9 @@ import { supabaseAdmin } from '@/lib/supabase';
 import Link from 'next/link';
 import { ArrowRight, Globe, Microscope, GraduationCap } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function getHomeData() {
   const [announcementsRes, papersRes, researchRes] = await Promise.all([
     supabaseAdmin

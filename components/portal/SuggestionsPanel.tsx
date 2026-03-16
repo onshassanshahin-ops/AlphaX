@@ -24,6 +24,7 @@ interface SuggestionsPanelProps {
   blockSlug: string;
   alphanautId: string;
   isNavigator: boolean;
+  panelId?: string;
 }
 
 const typeColors: Record<string, string> = {
@@ -43,7 +44,7 @@ const statusConfig: Record<string, { color: string; label: string }> = {
   rejected: { color: '#ef4444', label: 'Rejected' },
 };
 
-export default function SuggestionsPanel({ blockSlug, alphanautId, isNavigator }: SuggestionsPanelProps) {
+export default function SuggestionsPanel({ blockSlug, alphanautId, isNavigator, panelId }: SuggestionsPanelProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -115,7 +116,7 @@ export default function SuggestionsPanel({ blockSlug, alphanautId, isNavigator }
   };
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden">
+    <div id={panelId} className={`glass-card rounded-2xl overflow-hidden portal-reveal portal-stagger-3 ${panelId ? 'panel-target' : ''}`}>
       <div className="flex items-center justify-between p-5 border-b border-white/5">
         <div>
           <h3 className="font-bold font-grotesk text-white flex items-center gap-2">

@@ -45,10 +45,15 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan to-navy flex items-center justify-center font-bold text-white text-sm font-grotesk">
-              AX
-            </div>
+          <Link href="/" className="flex items-center gap-2 group overflow-visible">
+            <img
+              src="/partners/alphax-logo.png"
+              alt="AlphaX logo"
+              width={320}
+              height={120}
+              className="h-14 sm:h-16 w-auto max-w-none object-contain shrink-0 -my-2"
+            />
+            
             <span className="font-bold text-lg font-grotesk text-white group-hover:text-cyan transition-colors">
               AlphaX
             </span>

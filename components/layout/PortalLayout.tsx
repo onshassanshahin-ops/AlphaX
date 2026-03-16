@@ -27,7 +27,7 @@ interface PortalLayoutProps {
 }
 
 const navItems = [
-  { href: '/portal/dashboard', label: 'Dashboard', icon: LayoutDashboard, slug: null },
+  { href: '/portal/dashboard', label: 'Pulse Feed', icon: LayoutDashboard, slug: null },
   { href: '/portal/dashboard/knowledge-bridge', label: 'Knowledge Bridge', icon: BookOpen, slug: 'knowledge-bridge' },
   { href: '/portal/dashboard/research', label: 'Research Lab', icon: FlaskConical, slug: 'asclepius-lab' },
   { href: '/portal/dashboard/creative-lab', label: 'Creative Lab', icon: Palette, slug: 'creative-lab' },
@@ -78,8 +78,8 @@ export default function PortalLayout({ children, session }: PortalLayoutProps) {
             AX
           </div>
           <div>
-            <p className="font-bold font-grotesk text-white text-sm">AlphaX Portal</p>
-            <p className="text-xs text-slate-500">Member Dashboard</p>
+            <p className="font-bold font-grotesk text-white text-sm">AlphaX Space</p>
+            <p className="text-xs text-slate-500">Creative Member Hub</p>
           </div>
         </Link>
       </div>
@@ -147,9 +147,15 @@ export default function PortalLayout({ children, session }: PortalLayoutProps) {
   );
 
   return (
-    <div className="flex h-screen bg-bg overflow-hidden">
+    <div className="flex h-screen bg-bg overflow-hidden relative">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-cyan/5 blur-3xl" />
+        <div className="absolute top-1/3 -right-24 w-72 h-72 rounded-full bg-purple/5 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 w-80 h-80 rounded-full bg-gold/5 blur-3xl" />
+      </div>
+
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-dark border-r border-cyan/10 flex-col shrink-0">
+      <aside className="hidden lg:flex w-64 bg-dark/95 backdrop-blur border-r border-cyan/10 flex-col shrink-0 relative z-10">
         <SidebarContent />
       </aside>
 
@@ -173,16 +179,16 @@ export default function PortalLayout({ children, session }: PortalLayoutProps) {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         {/* Top Bar (mobile) */}
-        <header className="lg:hidden flex items-center gap-4 px-4 h-14 bg-dark border-b border-cyan/10">
+        <header className="lg:hidden flex items-center gap-4 px-4 h-14 bg-dark/95 border-b border-cyan/10">
           <button
             onClick={() => setSidebarOpen(true)}
             className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10"
           >
             <Menu size={20} />
           </button>
-          <span className="font-bold font-grotesk text-white">AlphaX Portal</span>
+          <span className="font-bold font-grotesk text-white">AlphaX Space</span>
         </header>
 
         {/* Page Content */}

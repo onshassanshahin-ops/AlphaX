@@ -61,6 +61,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (portalSession && !adminSession) {
+    const isKbNavigator =
+      portalSession.role === 'co-captain' ||
+      (portalSession.navigatorBlocks || []).includes('knowledge-bridge');
+
+    if (!isKbNavigator) {
+      return NextResponse.json(
+        { error: 'Only Knowledge Bridge navigators can submit papers.' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const formData = await request.formData();
     const title_ar = formData.get('title_ar') as string;

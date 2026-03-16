@@ -6,8 +6,11 @@ import PortalLayout from '@/components/layout/PortalLayout';
 import TasksPanel from '@/components/portal/TasksPanel';
 import InitiativesPanel from '@/components/portal/InitiativesPanel';
 import SuggestionsPanel from '@/components/portal/SuggestionsPanel';
+import BlockPulseStrip from '@/components/portal/BlockPulseStrip';
+import RoleJourneyPanel from '@/components/portal/RoleJourneyPanel';
+import NextActionsCard from '@/components/portal/NextActionsCard';
 import Button from '@/components/ui/Button';
-import { Radio, Plus, Send } from 'lucide-react';
+import { Radio, Plus, Send, Megaphone, Sparkles, Target, Waves } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { PortalSession } from '@/types';
 
@@ -19,6 +22,8 @@ export default function ScienceCommPortalPage() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ title: '', content: '', type: 'general' });
+  const [publishedCount, setPublishedCount] = useState(0);
+  const [draftCount, setDraftCount] = useState(0);
 
   useEffect(() => {
     fetch('/api/auth/portal')
@@ -37,6 +42,14 @@ export default function ScienceCommPortalPage() {
             .then(r => r.json())
             .then(d => setBlockMembers(d.members || []));
         }
+
+        fetch('/api/announcements')
+          .then(r => r.ok ? r.json() : { announcements: [] })
+          .then((d) => {
+            const announcements = d.announcements || [];
+            setPublishedCount(announcements.filter((a: any) => !!a.is_published).length);
+            setDraftCount(announcements.filter((a: any) => !a.is_published).length);
+          });
       })
       .finally(() => setSessionLoading(false));
   }, [router]);
@@ -76,7 +89,10 @@ export default function ScienceCommPortalPage() {
     <PortalLayout session={session}>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden rounded-3xl p-7 border border-yellow-500/25 bg-gradient-to-r from-[#2f240a] via-dark to-[#1c1a10] portal-reveal portal-stagger-1">
+          <div className="absolute -right-14 -top-14 w-72 h-72 rounded-full bg-yellow-500/10 blur-3xl" />
+          <div className="absolute -left-16 -bottom-20 w-64 h-64 rounded-full bg-cyan/10 blur-3xl" />
+          <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center text-xl">
               📡
@@ -93,10 +109,55 @@ export default function ScienceCommPortalPage() {
               ⭐ Navigator
             </span>
           )}
+          </div>
+          <BlockPulseStrip
+            items={[
+              { label: 'Published Signals', value: publishedCount, tone: 'yellow' },
+              { label: 'Pending Drafts', value: draftCount, tone: 'cyan' },
+              { label: 'Team Members', value: blockMembers.length || '—', tone: 'purple' },
+              { label: 'Role Focus', value: isNavigator ? 'Lead Narrative' : 'Contribute Stories', tone: 'orange' },
+            ]}
+          />
         </div>
 
+        <RoleJourneyPanel
+          title={isNavigator ? 'Navigator Broadcast Studio' : 'Alphanaut Story Experience'}
+          icon={isNavigator ? Megaphone : Sparkles}
+          iconClassName="text-yellow-400"
+          containerClassName="border border-yellow-500/20"
+          items={isNavigator
+            ? [
+                { title: 'Signal Strategy', desc: 'Set weekly campaign arc and align each draft to one clear audience.' },
+                { title: 'Editorial Quality', desc: 'Review content for scientific clarity, tone, and actionability.' },
+                { title: 'Release Cadence', desc: 'Convert approved ideas to initiatives and maintain posting rhythm.' },
+              ]
+            : [
+                { title: 'Choose Theme', desc: 'Pick one focus area and connect it to real student impact.' },
+                { title: 'Draft Clearly', desc: 'Write concise, evidence-backed content ready for navigator feedback.' },
+                { title: 'Amplify', desc: 'Use suggestions and initiatives to turn one post into a content series.' },
+              ]}
+        />
+
+        <NextActionsCard
+          title={isNavigator ? 'Navigator Broadcast Next Actions' : 'Your Story Next Actions'}
+          icon={Target}
+          iconClassName="text-yellow-400"
+          containerClassName="border border-yellow-500/20 bg-yellow-500/10"
+          actions={isNavigator
+            ? [
+                { title: 'Approve One High-Signal Draft', hint: 'Prioritize evidence-backed content with clear audience fit.', href: '#science-draft', actionLabel: 'Open Draft Panel' },
+                { title: 'Launch One Campaign Initiative', hint: 'Convert content direction into an execution initiative.', href: '#science-initiatives', actionLabel: 'Open Initiatives' },
+                { title: 'Set Weekly CTA Pattern', hint: 'Keep one consistent call-to-action across this week posts.', href: '#science-calendar', actionLabel: 'Open Calendar' },
+              ]
+            : [
+                { title: 'Draft One Focused Story', hint: 'Choose one audience and one message for your draft.', href: '#science-draft', actionLabel: 'Open Draft Panel' },
+                { title: 'Add Supporting Evidence', hint: 'Include one data point or citation to boost credibility.', href: '#science-suggestions', actionLabel: 'Open Suggestions' },
+                { title: 'Propose Follow-up Idea', hint: 'Suggest how this content can become a mini-series.', href: '#science-initiatives', actionLabel: 'Open Initiatives' },
+              ]}
+        />
+
         {/* Draft Announcement */}
-        <div className="glass-card rounded-2xl p-6">
+        <div id="science-draft" className="glass-card rounded-2xl p-6 portal-reveal portal-stagger-2 panel-target">
           <h2 className="text-lg font-bold font-grotesk text-white mb-2 flex items-center gap-2">
             <Plus size={18} className="text-yellow-400" />
             Draft Announcement
@@ -149,34 +210,50 @@ export default function ScienceCommPortalPage() {
         {/* Tasks / Suggestions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <TasksPanel
+            panelId="science-tasks"
             blockSlug="science-comm"
             alphanautId={session.alphanaut_id}
             isNavigator={isNavigator}
             blockMembers={blockMembers}
           />
           <SuggestionsPanel
+            panelId="science-suggestions"
             blockSlug="science-comm"
             alphanautId={session.alphanaut_id}
             isNavigator={isNavigator}
           />
         </div>
         <InitiativesPanel
+          panelId="science-initiatives"
           blockSlug="science-comm"
           alphanautId={session.alphanaut_id}
           isNavigator={isNavigator}
         />
 
         {/* Content Calendar */}
-        <div className="glass-card rounded-2xl p-6">
+        <div id="science-calendar" className="glass-card rounded-2xl p-6 panel-target">
           <h2 className="text-lg font-bold font-grotesk text-white mb-4 flex items-center gap-2">
-            <Radio size={18} className="text-yellow-400" />
-            Content Calendar
+            <Waves size={18} className="text-yellow-400" />
+            Content Pulse Calendar
           </h2>
-          <div className="text-center py-10">
-            <p className="text-4xl mb-3">📅</p>
-            <p className="text-slate-400 text-sm">Content calendar coming soon</p>
-            <p className="text-xs text-slate-600 mt-1">
-              {isNavigator ? 'You can share the content schedule here.' : 'Your Navigator will share the upcoming content schedule here.'}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/10">
+              <p className="text-xs text-slate-500 mb-1">This Week</p>
+              <p className="text-sm text-white font-semibold">Research digest + one story-led announcement</p>
+            </div>
+            <div className="p-3 rounded-xl border border-cyan/20 bg-cyan/10">
+              <p className="text-xs text-slate-500 mb-1">Next Wave</p>
+              <p className="text-sm text-white font-semibold">Volunteer and event spotlight rotation</p>
+            </div>
+            <div className="p-3 rounded-xl border border-purple/20 bg-purple/10">
+              <p className="text-xs text-slate-500 mb-1">Quality Rule</p>
+              <p className="text-sm text-white font-semibold">One post = one core message + one clear CTA</p>
+            </div>
+          </div>
+          <div className="mt-4 p-3 rounded-xl border border-white/10 bg-dark/40 flex items-start gap-2">
+            <Target size={14} className="text-yellow-400 mt-0.5" />
+            <p className="text-xs text-slate-400 leading-relaxed">
+              {isNavigator ? 'Use this panel to keep campaign consistency across drafts, tasks, and initiative execution.' : 'Follow this pattern to craft high-impact drafts that are easy to approve and publish.'}
             </p>
           </div>
         </div>

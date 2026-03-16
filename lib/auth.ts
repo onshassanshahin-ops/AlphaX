@@ -72,7 +72,40 @@ export async function getPortalSession(): Promise<PortalSession | null> {
   if (!cookie?.value) return null;
 
   try {
-    return JSON.parse(cookie.value) as PortalSession;
+    const parsed = JSON.parse(cookie.value) as PortalSession;
+    if (!parsed?.alphanaut_id) return null;
+
+    const { data: alphanaut } = await supabaseAdmin
+      .from('alphanauts')
+      .select(`
+        id, name, role, is_active,
+        alphanaut_blocks (
+          role,
+          blocks (slug)
+        )
+      `)
+      .eq('id', parsed.alphanaut_id)
+      .single();
+
+    if (!alphanaut || !alphanaut.is_active) {
+      return null;
+    }
+
+    const blockSlugs = (alphanaut.alphanaut_blocks || [])
+      .map((ab: any) => ab.blocks?.slug)
+      .filter(Boolean) as string[];
+
+    const navigatorBlocks = (alphanaut.alphanaut_blocks || [])
+      .filter((ab: any) => ab.role === 'navigator' && ab.blocks?.slug)
+      .map((ab: any) => ab.blocks.slug as string);
+
+    return {
+      alphanaut_id: alphanaut.id,
+      name: alphanaut.name,
+      role: alphanaut.role,
+      blocks: blockSlugs,
+      navigatorBlocks,
+    };
   } catch {
     return null;
   }

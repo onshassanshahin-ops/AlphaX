@@ -26,6 +26,7 @@ interface TasksPanelProps {
   alphanautId: string;
   isNavigator: boolean;
   blockMembers?: Alphanaut[];
+  panelId?: string;
 }
 
 const priorityConfig = {
@@ -42,7 +43,7 @@ const statusConfig = {
   cancelled: { icon: X, color: '#ef4444', label: 'Cancelled' },
 };
 
-export default function TasksPanel({ blockSlug, alphanautId, isNavigator, blockMembers = [] }: TasksPanelProps) {
+export default function TasksPanel({ blockSlug, alphanautId, isNavigator, blockMembers = [], panelId }: TasksPanelProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -103,7 +104,7 @@ export default function TasksPanel({ blockSlug, alphanautId, isNavigator, blockM
   const filtered = filterStatus === 'all' ? tasks : tasks.filter(t => t.status === filterStatus);
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden">
+    <div id={panelId} className={`glass-card rounded-2xl overflow-hidden portal-reveal portal-stagger-2 ${panelId ? 'panel-target' : ''}`}>
       <div className="flex items-center justify-between p-5 border-b border-white/5">
         <div>
           <h3 className="font-bold font-grotesk text-white flex items-center gap-2">

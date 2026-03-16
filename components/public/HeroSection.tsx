@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import Image from 'next/image';
 
 interface Particle {
   x: number;
@@ -161,6 +162,35 @@ export default function HeroSection() {
           >
             Join the Collective
           </Link>
+        </div>
+
+        {/* Partnership strip */}
+        <div className="mt-8 animate-fade-in">
+          <p className="text-sm text-slate-300 mb-3">
+            AlphaX collaborate with Syrian Virtual University (SVU)
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="glass-card-light rounded-xl px-4 py-2.5">
+              <Image
+                src="/partners/alphax-logo.png"
+                alt="AlphaX logo"
+                width={220}
+                height={64}
+                className="h-14 w-auto max-w-none"
+                priority
+              />
+            </div>
+            <div className="glass-card-light rounded-xl px-4 py-2.5">
+              <Image
+                src="/partners/svu-logo.png"
+                alt="SVU logo "
+                width={220}
+                height={64}
+                className="h-10 w-auto"
+                priority
+              />
+            </div>
+          </div>
         </div>
 
         {/* Scroll indicator */}

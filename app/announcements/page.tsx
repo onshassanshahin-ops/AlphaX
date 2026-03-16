@@ -4,6 +4,9 @@ import AnnouncementCard from '@/components/public/AnnouncementCard';
 import { supabaseAdmin } from '@/lib/supabase';
 import type { Announcement } from '@/types';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function getAnnouncements() {
   const { data } = await supabaseAdmin
     .from('announcements')
