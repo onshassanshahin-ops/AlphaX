@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { checkWriteRateLimit, logActivity } from '@/lib/api-guard';
 import {
   getKbAuthContext,
   isSectionNavigator,
@@ -12,6 +13,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!adminSession && !isKbPortalUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const limiter = await checkWriteRateLimit(
+    request,
+    'rate_limit:kb_task_update',
+    adminSession ? 'admin' : 'alphanaut',
+    adminSession?.admin_id || userId,
+    80,
+    10
+  );
+  if (!limiter.allowed) return limiter.response!;
 
   const { data: task } = await supabaseAdmin
     .from('kb_subgroup_tasks')
@@ -72,6 +83,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    await logActivity({
+      actorType: adminSession ? 'admin' : 'alphanaut',
+      actorId: adminSession?.admin_id || userId,
+      action: 'kb_task_updated',
+      entityType: 'kb_subgroup_task',
+      entityId: params.id,
+      details: updates,
+    });
+
     return NextResponse.json({ task: data, success: true });
   } catch {
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
@@ -83,6 +103,16 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   if (!adminSession && !isKbPortalUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const limiter = await checkWriteRateLimit(
+    request,
+    'rate_limit:kb_task_delete',
+    adminSession ? 'admin' : 'alphanaut',
+    adminSession?.admin_id || userId,
+    30,
+    10
+  );
+  if (!limiter.allowed) return limiter.response!;
 
   const { data: task } = await supabaseAdmin
     .from('kb_subgroup_tasks')
@@ -109,6 +139,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  await logActivity({
+    actorType: adminSession ? 'admin' : 'alphanaut',
+    actorId: adminSession?.admin_id || userId,
+    action: 'kb_task_deleted',
+    entityType: 'kb_subgroup_task',
+    entityId: params.id,
+  });
 
   return NextResponse.json({ success: true });
 }

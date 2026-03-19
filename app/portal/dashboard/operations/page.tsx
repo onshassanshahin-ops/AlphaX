@@ -9,6 +9,7 @@ import BlockMembersPanel from '@/components/portal/BlockMembersPanel';
 import BlockPulseStrip from '@/components/portal/BlockPulseStrip';
 import RoleJourneyPanel from '@/components/portal/RoleJourneyPanel';
 import NextActionsCard from '@/components/portal/NextActionsCard';
+import BlockAIAssistant from '@/components/portal/BlockAIAssistant';
 import { Radar, Briefcase, Route, ShieldCheck } from 'lucide-react';
 
 async function getBlockMembers(blockSlug: string) {
@@ -112,6 +113,11 @@ export default async function OperationsPortalPage() {
             ]}
           />
         </div>
+
+        <BlockAIAssistant
+          blockSlug={blockSlug}
+          blockName={session.blocks.includes('engineering') ? 'Engineering & Operations' : 'Operations & Strategy'}
+        />
 
         {isNavigator ? (
           /* ── NAVIGATOR VIEW ── */

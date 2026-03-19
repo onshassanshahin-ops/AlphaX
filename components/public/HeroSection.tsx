@@ -4,6 +4,19 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import Image from 'next/image';
+import type { PublicLang } from '@/lib/public-lang';
+
+export interface HeroSettings {
+  badge?: string;
+  title_line1?: string;
+  highlight1?: string;
+  title_line2?: string;
+  highlight2?: string;
+  subtitle?: string;
+  cta_primary?: string;
+  cta_secondary?: string;
+  partner_text?: string;
+}
 
 interface Particle {
   x: number;
@@ -21,7 +34,20 @@ interface Connection {
   dist: number;
 }
 
-export default function HeroSection() {
+export default function HeroSection({ settings = {}, lang = 'en' }: { settings?: HeroSettings; lang?: PublicLang }) {
+  const badge = settings.badge ?? (lang === 'ar' ? 'مجتمع البحث السوري' : 'Syrian Research Collective');
+  const titleLine1 = settings.title_line1 ?? (lang === 'ar' ? 'من مستهلكي' : 'From Knowledge');
+  const highlight1 = settings.highlight1 ?? (lang === 'ar' ? 'المعرفة' : 'Consumers');
+  const titleLine2 = settings.title_line2 ?? (lang === 'ar' ? 'إلى صُنّاع' : 'to Knowledge');
+  const highlight2 = settings.highlight2 ?? (lang === 'ar' ? 'المعرفة' : 'Creators');
+  const subtitle = settings.subtitle ?? (lang === 'ar'
+    ? 'تجسر AlphaX الفجوة بين العلم العالمي والعالم العربي عبر ترجمة الأبحاث ونشر الاكتشافات وتدريب الجيل القادم من العلماء العرب.'
+    : 'AlphaX bridges the gap between global science and the Arab world — translating research, publishing discoveries, and training the next generation of Arab scientists.');
+  const ctaPrimary = settings.cta_primary ?? (lang === 'ar' ? 'استكشف الأبحاث' : 'Explore Research');
+  const ctaSecondary = settings.cta_secondary ?? (lang === 'ar' ? 'انضم إلى المجموعة' : 'Join the Collective');
+  const partnerText = settings.partner_text ?? (lang === 'ar'
+    ? 'تتعاون AlphaX مع الجامعة الافتراضية السورية'
+    : 'AlphaX collaborate with Syrian Virtual University (SVU)');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
@@ -108,7 +134,7 @@ export default function HeroSection() {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-bg">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-bg" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Animated canvas background */}
       <canvas
         ref={canvasRef}
@@ -129,22 +155,21 @@ export default function HeroSection() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan/30 bg-cyan/10 text-cyan text-sm font-medium mb-8 animate-fade-in">
           <Sparkles size={14} />
-          Syrian Research Collective
+          {badge}
         </div>
 
         {/* Main heading */}
         <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold font-grotesk text-white mb-6 leading-tight animate-slide-up">
-          From Knowledge{' '}
-          <span className="text-gradient">Consumers</span>
+          {titleLine1}{' '}
+          <span className="text-gradient">{highlight1}</span>
           <br />
-          to Knowledge{' '}
-          <span className="text-gradient">Creators</span>
+          {titleLine2}{' '}
+          <span className="text-gradient">{highlight2}</span>
         </h1>
 
         {/* Subheading */}
         <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in">
-          AlphaX bridges the gap between global science and the Arab world — translating
-          research, publishing discoveries, and training the next generation of Arab scientists.
+          {subtitle}
         </p>
 
         {/* CTA Buttons */}
@@ -153,22 +178,20 @@ export default function HeroSection() {
             href="/knowledge-bridge"
             className="btn-primary flex items-center gap-2 text-base px-8 py-4"
           >
-            Explore Research
+            {ctaPrimary}
             <ArrowRight size={18} />
           </Link>
           <Link
             href="/join"
             className="px-8 py-4 rounded-lg border border-cyan/30 text-cyan text-base font-semibold hover:bg-cyan/10 hover:border-cyan/50 transition-all duration-300"
           >
-            Join the Collective
+            {ctaSecondary}
           </Link>
         </div>
 
         {/* Partnership strip */}
         <div className="mt-8 animate-fade-in">
-          <p className="text-sm text-slate-300 mb-3">
-            AlphaX collaborate with Syrian Virtual University (SVU)
-          </p>
+          <p className="text-sm text-slate-300 mb-3">{partnerText}</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <div className="glass-card-light rounded-xl px-4 py-2.5">
               <Image

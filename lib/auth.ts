@@ -12,6 +12,26 @@ const COOKIE_OPTIONS = {
   path: '/',
 };
 
+const BLOCK_SLUG_ALIASES: Record<string, string> = {
+  communication: 'science-comm',
+  'science-communication': 'science-comm',
+  science_comm: 'science-comm',
+  operation: 'operations',
+  ops: 'operations',
+  creative: 'creative-lab',
+  creative_lab: 'creative-lab',
+};
+
+function normalizeBlockSlug(slug?: string | null): string | null {
+  if (!slug) return null;
+  const normalized = slug.trim().toLowerCase();
+  return BLOCK_SLUG_ALIASES[normalized] || normalized;
+}
+
+function unique(values: string[]): string[] {
+  return Array.from(new Set(values));
+}
+
 // ===== PORTAL AUTH =====
 
 export async function validatePortalCode(code: string): Promise<{
@@ -41,13 +61,18 @@ export async function validatePortalCode(code: string): Promise<{
     return { session: null, error: 'Your account is inactive. Please contact an admin.' };
   }
 
-  const blockSlugs = (alphanaut.alphanaut_blocks || [])
-    .map((ab: any) => ab.blocks?.slug)
-    .filter(Boolean) as string[];
+  const blockSlugs = unique(
+    (alphanaut.alphanaut_blocks || [])
+      .map((ab: any) => normalizeBlockSlug(ab.blocks?.slug))
+      .filter(Boolean) as string[]
+  );
 
-  const navigatorBlocks = (alphanaut.alphanaut_blocks || [])
-    .filter((ab: any) => ab.role === 'navigator' && ab.blocks?.slug)
-    .map((ab: any) => ab.blocks.slug as string);
+  const navigatorBlocks = unique(
+    (alphanaut.alphanaut_blocks || [])
+      .filter((ab: any) => ab.role === 'navigator' && ab.blocks?.slug)
+      .map((ab: any) => normalizeBlockSlug(ab.blocks?.slug))
+      .filter(Boolean) as string[]
+  );
 
   const session: PortalSession = {
     alphanaut_id: alphanaut.id,
@@ -91,13 +116,18 @@ export async function getPortalSession(): Promise<PortalSession | null> {
       return null;
     }
 
-    const blockSlugs = (alphanaut.alphanaut_blocks || [])
-      .map((ab: any) => ab.blocks?.slug)
-      .filter(Boolean) as string[];
+    const blockSlugs = unique(
+      (alphanaut.alphanaut_blocks || [])
+        .map((ab: any) => normalizeBlockSlug(ab.blocks?.slug))
+        .filter(Boolean) as string[]
+    );
 
-    const navigatorBlocks = (alphanaut.alphanaut_blocks || [])
-      .filter((ab: any) => ab.role === 'navigator' && ab.blocks?.slug)
-      .map((ab: any) => ab.blocks.slug as string);
+    const navigatorBlocks = unique(
+      (alphanaut.alphanaut_blocks || [])
+        .filter((ab: any) => ab.role === 'navigator' && ab.blocks?.slug)
+        .map((ab: any) => normalizeBlockSlug(ab.blocks?.slug))
+        .filter(Boolean) as string[]
+    );
 
     return {
       alphanaut_id: alphanaut.id,

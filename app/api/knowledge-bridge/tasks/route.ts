@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { checkWriteRateLimit, logActivity } from '@/lib/api-guard';
 import {
   getKbAuthContext,
   isSectionNavigator,
   isSubgroupLeader,
-  isSubgroupMember,
 } from '../_utils';
 
 export async function GET(request: NextRequest) {
@@ -35,7 +35,41 @@ export async function GET(request: NextRequest) {
     const isSimplificationNav = await isSectionNavigator(userId, 'simplification');
 
     if (!isTranslationNav && !isSimplificationNav) {
-      query = query.eq('assigned_to', userId);
+      // Leaders should see tasks for their subgroup(s); members see their own assigned tasks.
+      if (subgroupId) {
+        const canLeadSubgroup = await isSubgroupLeader(userId, subgroupId);
+        if (!canLeadSubgroup) {
+          query = query.eq('assigned_to', userId);
+        }
+      } else if (workflowId) {
+        const { data: workflow } = await supabaseAdmin
+          .from('kb_workflows')
+          .select('translation_subgroup_id, simplification_subgroup_id')
+          .eq('id', workflowId)
+          .single();
+
+        const leaderChecks = await Promise.all([
+          workflow?.translation_subgroup_id ? isSubgroupLeader(userId, workflow.translation_subgroup_id) : Promise.resolve(false),
+          workflow?.simplification_subgroup_id ? isSubgroupLeader(userId, workflow.simplification_subgroup_id) : Promise.resolve(false),
+        ]);
+
+        const canLeadWorkflowSubgroup = leaderChecks.some(Boolean);
+        if (!canLeadWorkflowSubgroup) {
+          query = query.eq('assigned_to', userId);
+        }
+      } else {
+        const { data: leadRows } = await supabaseAdmin
+          .from('kb_subgroups')
+          .select('id')
+          .eq('leader_id', userId);
+
+        const leaderSubgroupIds = (leadRows || []).map((row: { id: string }) => row.id);
+        if (leaderSubgroupIds.length > 0) {
+          query = query.in('subgroup_id', leaderSubgroupIds);
+        } else {
+          query = query.eq('assigned_to', userId);
+        }
+      }
     }
   }
 
@@ -53,6 +87,16 @@ export async function POST(request: NextRequest) {
   if (!adminSession && !isKbPortalUser) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const limiter = await checkWriteRateLimit(
+    request,
+    'rate_limit:kb_task_create',
+    adminSession ? 'admin' : 'alphanaut',
+    adminSession?.admin_id || userId,
+    40,
+    10
+  );
+  if (!limiter.allowed) return limiter.response!;
 
   try {
     const body = await request.json();
@@ -100,6 +144,20 @@ export async function POST(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    await logActivity({
+      actorType: adminSession ? 'admin' : 'alphanaut',
+      actorId: adminSession?.admin_id || userId,
+      action: 'kb_task_created',
+      entityType: 'kb_subgroup_task',
+      entityId: data.id,
+      details: {
+        workflow_id: workflowId,
+        subgroup_id: subgroupId,
+        assigned_to: assignedTo,
+        deadline: deadline || null,
+      },
+    });
 
     return NextResponse.json({ task: data, success: true });
   } catch {

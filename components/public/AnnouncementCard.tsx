@@ -4,13 +4,15 @@ import { AnnouncementTypeBadge } from '@/components/ui/Badge';
 import { formatRelativeDate, truncate } from '@/lib/utils';
 import type { Announcement } from '@/types';
 import { cn } from '@/lib/utils';
+import { t, type PublicLang } from '@/lib/public-lang';
 
 interface AnnouncementCardProps {
   announcement: Announcement;
   compact?: boolean;
+  lang?: PublicLang;
 }
 
-export default function AnnouncementCard({ announcement, compact = false }: AnnouncementCardProps) {
+export default function AnnouncementCard({ announcement, compact = false, lang = 'en' }: AnnouncementCardProps) {
   const isUrgent = announcement.type === 'urgent';
 
   return (
@@ -28,7 +30,7 @@ export default function AnnouncementCard({ announcement, compact = false }: Anno
           {announcement.is_pinned && (
             <span className="flex items-center gap-1 text-xs text-gold">
               <Pin size={10} />
-              Pinned
+              {t(lang, 'Pinned', 'مثبّت')}
             </span>
           )}
         </div>
@@ -59,7 +61,7 @@ export default function AnnouncementCard({ announcement, compact = false }: Anno
           href={`/announcements/${announcement.id}`}
           className="inline-flex items-center gap-1.5 text-sm text-cyan font-semibold hover:text-white transition-colors"
         >
-          Read More
+          {t(lang, 'Read More', 'اقرأ المزيد')}
           <ExternalLink size={13} />
         </Link>
       </div>
@@ -70,15 +72,17 @@ export default function AnnouncementCard({ announcement, compact = false }: Anno
 export function AnnouncementsGrid({
   announcements,
   showViewAll = false,
+  lang = 'en',
 }: {
   announcements: Announcement[];
   showViewAll?: boolean;
+  lang?: PublicLang;
 }) {
   if (!announcements.length) {
     return (
       <div className="text-center py-16 text-slate-500">
         <p className="text-4xl mb-3">📢</p>
-        <p className="text-lg font-grotesk text-slate-400">No announcements yet</p>
+        <p className="text-lg font-grotesk text-slate-400">{t(lang, 'No announcements yet', 'لا توجد إعلانات حتى الآن')}</p>
       </div>
     );
   }
@@ -87,7 +91,7 @@ export function AnnouncementsGrid({
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {announcements.map((a) => (
-          <AnnouncementCard key={a.id} announcement={a} />
+          <AnnouncementCard key={a.id} announcement={a} lang={lang} />
         ))}
       </div>
       {showViewAll && (
@@ -96,7 +100,7 @@ export function AnnouncementsGrid({
             href="/announcements"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-cyan/30 text-cyan hover:bg-cyan/10 transition-colors font-semibold"
           >
-            View All Announcements
+            {t(lang, 'View All Announcements', 'عرض كل الإعلانات')}
             <ExternalLink size={16} />
           </Link>
         </div>

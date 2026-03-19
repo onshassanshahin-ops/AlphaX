@@ -9,6 +9,7 @@ interface Task {
   id: string;
   title: string;
   description?: string;
+  assigned_to?: string;
   deadline?: string;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
@@ -103,6 +104,20 @@ export default function TasksPanel({ blockSlug, alphanautId, isNavigator, blockM
 
   const filtered = filterStatus === 'all' ? tasks : tasks.filter(t => t.status === filterStatus);
 
+  const memberLoad = blockMembers
+    .map((m) => ({
+      ...m,
+      openTasks: tasks.filter(
+        (t: Task & { assigned_to?: string }) =>
+          (t as Task & { assigned_to?: string }).assigned_to === m.id &&
+          t.status !== 'completed' &&
+          t.status !== 'cancelled'
+      ).length,
+    }))
+    .sort((a, b) => a.openTasks - b.openTasks);
+
+  const recommendedAssignees = memberLoad.slice(0, 3);
+
   return (
     <div id={panelId} className={`glass-card rounded-2xl overflow-hidden portal-reveal portal-stagger-2 ${panelId ? 'panel-target' : ''}`}>
       <div className="flex items-center justify-between p-5 border-b border-white/5">
@@ -142,6 +157,27 @@ export default function TasksPanel({ blockSlug, alphanautId, isNavigator, blockM
       {showCreate && isNavigator && (
         <div className="p-5 border-b border-white/5 bg-navy/30">
           <form onSubmit={handleCreate} className="space-y-3">
+            {recommendedAssignees.length > 0 && (
+              <div className="rounded-xl bg-cyan/5 border border-cyan/15 p-3">
+                <p className="text-xs text-cyan mb-2 font-medium">Smart Assignment Assistant</p>
+                <div className="flex flex-wrap gap-2">
+                  {recommendedAssignees.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, assigned_to: m.id }))}
+                      className={`text-xs px-2.5 py-1 rounded-lg border transition ${
+                        form.assigned_to === m.id
+                          ? 'border-cyan/40 text-cyan bg-cyan/10'
+                          : 'border-white/10 text-slate-400 hover:text-white hover:border-cyan/30'
+                      }`}
+                    >
+                      {m.name} · {m.openTasks} open
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <input
               required
               placeholder="Task title..."

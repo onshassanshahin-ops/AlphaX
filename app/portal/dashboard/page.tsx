@@ -3,6 +3,9 @@ import { getPortalSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import PortalLayout from '@/components/layout/PortalLayout';
 import BlockCard from '@/components/portal/BlockCard';
+import MissionBoard from '@/components/portal/MissionBoard';
+import TeamHealthPanel from '@/components/portal/TeamHealthPanel';
+import NotificationCenter from '@/components/portal/NotificationCenter';
 import { BLOCKS_CONFIG } from '@/types';
 import { formatRelativeDate, formatRole } from '@/lib/utils';
 import Link from 'next/link';
@@ -10,7 +13,7 @@ import { Bell, Activity, CheckCircle, AlertCircle, Sparkles } from 'lucide-react
 import type { Announcement, ActivityLog } from '@/types';
 
 async function getDashboardData(alphanautId: string, blockSlugs: string[]) {
-  const [alphanautRes, activityRes, blocksRes, announcementsRes, tasksRes, requestsRes, mySuggestionsRes] = await Promise.all([
+  const [alphanautRes, activityRes, blocksRes, announcementsRes, tasksRes, requestsRes, mySuggestionsRes, settingsRes] = await Promise.all([
     supabaseAdmin
       .from('alphanauts')
       .select(`
@@ -59,7 +62,19 @@ async function getDashboardData(alphanautId: string, blockSlugs: string[]) {
       .in('block_slug', blockSlugs.length > 0 ? blockSlugs : ['knowledge-bridge'])
       .order('created_at', { ascending: false })
       .limit(8),
+    supabaseAdmin
+      .from('site_settings')
+      .select('key, value')
+      .in('key', ['dashboard_banners', 'widget_layout'])
+      .limit(10),
   ]);
+
+  const settingsMap = (settingsRes.data || []).reduce((acc: Record<string, unknown>, row) => {
+    acc[row.key] = row.value;
+    return acc;
+  }, {});
+  const banners = (settingsMap.dashboard_banners as Record<string, string> | undefined) || {};
+  const widgetLayout = (settingsMap.widget_layout as Record<string, boolean> | undefined) || {};
 
   return {
     alphanaut: alphanautRes.data,
@@ -69,6 +84,17 @@ async function getDashboardData(alphanautId: string, blockSlugs: string[]) {
     pendingTasks: tasksRes.data || [],
     joinRequests: requestsRes.data || [],
     mySuggestions: mySuggestionsRes.data || [],
+    portalWelcome:
+      banners.portal_welcome ??
+      'This is your live pulse feed: block access, current mission tasks, announcements, and your contribution history.',
+    widgetLayout: {
+      show_notification_center: widgetLayout.show_notification_center ?? true,
+      show_mission_board: widgetLayout.show_mission_board ?? true,
+      show_team_health: widgetLayout.show_team_health ?? true,
+      show_weekly_focus: widgetLayout.show_weekly_focus ?? true,
+      show_signal_stream: widgetLayout.show_signal_stream ?? true,
+      show_activity_timeline: widgetLayout.show_activity_timeline ?? true,
+    },
   };
 }
 
@@ -76,7 +102,7 @@ export default async function PortalDashboardPage() {
   const session = await getPortalSession();
   if (!session) redirect('/portal');
 
-  const { alphanaut, activities, blocks, announcements, pendingTasks, joinRequests, mySuggestions } = await getDashboardData(
+  const { alphanaut, activities, blocks, announcements, pendingTasks, joinRequests, mySuggestions, portalWelcome, widgetLayout } = await getDashboardData(
     session.alphanaut_id,
     session.blocks
   );
@@ -94,6 +120,24 @@ export default async function PortalDashboardPage() {
     navigator: 'text-cyan',
     alphanaut: 'text-purple',
   };
+
+  void blocks;
+
+  const isNavigatorOrCaptain =
+    session.role === 'co-captain' || Object.values(memberBlocks).includes('navigator');
+
+  // Find blocks where the user is a navigator (to show TeamHealthPanel)
+  const navigatorBlockSlugs = Object.entries(memberBlocks)
+    .filter(([, role]) => role === 'navigator')
+    .map(([slug]) => slug);
+  if (session.role === 'co-captain') {
+    // co-captain sees all blocks; pick first for health panel
+    navigatorBlockSlugs.push(...session.blocks.filter((s) => !navigatorBlockSlugs.includes(s)));
+  }
+  const healthBlockSlug = navigatorBlockSlugs[0] ?? null;
+  const healthBlockConfig = healthBlockSlug
+    ? BLOCKS_CONFIG.find((b) => b.slug === healthBlockSlug) ?? null
+    : null;
 
   const blockPathBySlug = BLOCKS_CONFIG.reduce((acc: Record<string, string>, block) => {
     acc[block.slug] = block.portalPath;
@@ -148,7 +192,7 @@ export default async function PortalDashboardPage() {
               )}
             </div>
             <p className="text-slate-400 mt-4 max-w-2xl text-sm leading-relaxed">
-              This is your live pulse feed: block access, current mission tasks, announcements, and your contribution history.
+              {portalWelcome}
             </p>
           </div>
         </div>
@@ -225,7 +269,23 @@ export default async function PortalDashboardPage() {
           </div>
         )}
 
-        {weeklyFocus.length > 0 && (
+        {/* Personal Mission Board */}
+        {widgetLayout.show_notification_center && <NotificationCenter />}
+
+        {widgetLayout.show_mission_board && (
+          <MissionBoard alphanautId={session.alphanaut_id} blockSlugs={session.blocks} />
+        )}
+
+        {/* Team Health Panel — navigators and co-captain only */}
+        {widgetLayout.show_team_health && isNavigatorOrCaptain && healthBlockSlug && healthBlockConfig && (
+          <TeamHealthPanel
+            blockSlug={healthBlockSlug}
+            blockName={healthBlockConfig.name}
+            blockColor={healthBlockConfig.color}
+          />
+        )}
+
+        {widgetLayout.show_weekly_focus && weeklyFocus.length > 0 && (
           <div className="glass-card rounded-2xl p-6 border border-cyan/15 portal-reveal portal-stagger-2">
             <h3 className="font-bold font-grotesk text-white mb-4 flex items-center gap-2">
               <Sparkles size={17} className="text-cyan" />
@@ -287,6 +347,7 @@ export default async function PortalDashboardPage() {
         {/* Bottom Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Announcements */}
+          {widgetLayout.show_signal_stream && (
           <div className="glass-card rounded-2xl p-6">
             <h3 className="font-bold font-grotesk text-white mb-4 flex items-center gap-2">
               <Bell size={18} className="text-gold" />
@@ -310,8 +371,10 @@ export default async function PortalDashboardPage() {
               </div>
             )}
           </div>
+          )}
 
           {/* Activity Feed */}
+          {widgetLayout.show_activity_timeline && (
           <div className="glass-card rounded-2xl p-6">
             <h3 className="font-bold font-grotesk text-white mb-4 flex items-center gap-2">
               <Activity size={18} className="text-cyan" />
@@ -342,6 +405,7 @@ export default async function PortalDashboardPage() {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
     </PortalLayout>

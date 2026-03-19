@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import PortalLayout from '@/components/layout/PortalLayout';
 import ResearchForm from '@/components/portal/ResearchForm';
 import SuggestionsPanel from '@/components/portal/SuggestionsPanel';
+import TasksPanel from '@/components/portal/TasksPanel';
 import BlockPulseStrip from '@/components/portal/BlockPulseStrip';
 import RoleJourneyPanel from '@/components/portal/RoleJourneyPanel';
 import NextActionsCard from '@/components/portal/NextActionsCard';
+import BlockAIAssistant from '@/components/portal/BlockAIAssistant';
 import Modal from '@/components/ui/Modal';
 import { StatusBadge } from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -35,6 +37,12 @@ function ResearchPortalClient() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
 
+  const resolveResearchBlockSlug = (blocks: string[]) => {
+    if (blocks.includes('asclepius-lab')) return 'asclepius-lab';
+    if (blocks.includes('neuroscience')) return 'neuroscience';
+    return 'asclepius-lab';
+  };
+
   useEffect(() => {
     // Get session + projects in parallel
     Promise.all([
@@ -44,13 +52,14 @@ function ResearchPortalClient() {
       if (authData?.session) {
         setSession(authData.session);
         const nav: string[] = authData.session.navigatorBlocks || [];
+        const researchBlockSlug = resolveResearchBlockSlug(authData.session.blocks || []);
         const isNav =
           authData.session.role === 'co-captain' ||
           nav.includes('asclepius-lab') ||
           nav.includes('neuroscience');
 
         if (isNav) {
-          fetch('/api/blocks/asclepius-lab/members')
+          fetch(`/api/blocks/${researchBlockSlug}/members`)
             .then((r) => r.ok ? r.json() : { members: [] })
             .then((d) => setBlockMembers(d.members || []));
         }
@@ -88,6 +97,7 @@ function ResearchPortalClient() {
     mockSession.role === 'co-captain' ||
     mockSession.navigatorBlocks.includes('asclepius-lab') ||
     mockSession.navigatorBlocks.includes('neuroscience');
+  const researchBlockSlug = resolveResearchBlockSlug(mockSession.blocks);
 
   const publishedCount = projects.filter((p) => p.status === 'published').length;
   const reviewCount = projects.filter((p) => p.status === 'under_review' || p.status === 'submitted').length;
@@ -130,6 +140,11 @@ function ResearchPortalClient() {
           />
         </div>
 
+        <BlockAIAssistant
+          blockSlug={researchBlockSlug}
+          blockName={researchBlockSlug === 'neuroscience' ? 'Neuroscience Research' : 'Research Lab'}
+        />
+
         <RoleJourneyPanel
           title={isNavigator ? 'Navigator Research Command Center' : 'Alphanaut Discovery Experience'}
           icon={isNavigator ? Rocket : Sparkles}
@@ -156,7 +171,7 @@ function ResearchPortalClient() {
           actions={isNavigator
             ? [
                 { title: 'Triage One In-Review Project', hint: 'Push at least one review item toward final decision.', href: '#research-projects', actionLabel: 'Open Projects' },
-                { title: 'Open One Contributor Slot', hint: 'Assign a focused contribution path for a team member.', href: '#research-suggestions', actionLabel: 'Open Suggestions' },
+                { title: 'Open One Contributor Slot', hint: 'Assign a focused task with deadline for one team member.', href: '#research-tasks', actionLabel: 'Open Tasks' },
                 { title: 'Publish One Quality Note', hint: 'Share one method or quality standard update this week.', href: '#research-quality', actionLabel: 'Open Quality Standard' },
               ]
             : [
@@ -271,10 +286,18 @@ function ResearchPortalClient() {
           </div>
         </div>
 
+        <TasksPanel
+          panelId="research-tasks"
+          blockSlug={researchBlockSlug}
+          alphanautId={mockSession.alphanaut_id}
+          isNavigator={isNavigator}
+          blockMembers={blockMembers}
+        />
+
         {/* Suggestions */}
         <SuggestionsPanel
           panelId="research-suggestions"
-          blockSlug="asclepius-lab"
+          blockSlug={researchBlockSlug}
           alphanautId={mockSession.alphanaut_id}
           isNavigator={isNavigator}
         />
@@ -287,7 +310,7 @@ function ResearchPortalClient() {
           size="lg"
         >
           <ResearchForm
-            blockSlug="asclepius-lab"
+            blockSlug={researchBlockSlug}
             onSuccess={handleSuccess}
             onCancel={() => setShowForm(false)}
           />

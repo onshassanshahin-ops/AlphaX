@@ -2,18 +2,19 @@ import { redirect } from 'next/navigation';
 import { getAdminSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import Link from 'next/link';
-import { Users, FileText, FlaskConical, ClipboardList, Bell, Activity, Settings, ArrowRight, Shield, Calendar } from 'lucide-react';
+import { Users, FileText, FlaskConical, ClipboardList, Bell, Settings, ArrowRight, Shield, Calendar } from 'lucide-react';
 import AdminStatsCard from '@/components/admin/StatsCard';
 import SignOutButton from '@/components/admin/SignOutButton';
-import { formatRelativeDate } from '@/lib/utils';
+import AdminControlCenter from '@/components/admin/AdminControlCenter';
 
 async function getAdminStats() {
-  const [alphanauts, papers, research, applications, activities] = await Promise.all([
+  const [alphanauts, papers, research, applications, activitiesRes, activityCountRes] = await Promise.all([
     supabaseAdmin.from('alphanauts').select('id', { count: 'exact', head: true }).eq('is_active', true),
     supabaseAdmin.from('papers').select('id', { count: 'exact', head: true }).eq('status', 'published'),
     supabaseAdmin.from('research_projects').select('id', { count: 'exact', head: true }),
     supabaseAdmin.from('volunteer_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabaseAdmin.from('activity_log').select('*').order('created_at', { ascending: false }).limit(10),
+    supabaseAdmin.from('activity_log').select('*').order('created_at', { ascending: false }).limit(100),
+    supabaseAdmin.from('activity_log').select('id', { count: 'exact', head: true }),
   ]);
 
   return {
@@ -21,7 +22,8 @@ async function getAdminStats() {
     papers: papers.count || 0,
     research: research.count || 0,
     pendingApps: applications.count || 0,
-    activities: activities.data || [],
+    activities: activitiesRes.data || [],
+    activityTotal: activityCountRes.count || 0,
   };
 }
 
@@ -67,9 +69,7 @@ export default async function AdminDashboardPage() {
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Welcome */}
           <div>
-            <h1 className="text-3xl font-bold font-grotesk text-white mb-1">
-              Dashboard
-            </h1>
+            <h1 className="text-3xl font-bold font-grotesk text-white mb-1">Dashboard</h1>
             <p className="text-slate-400">Welcome back, {session.name || session.username}.</p>
           </div>
 
@@ -120,38 +120,10 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Activity Log */}
-          <div className="glass-card rounded-2xl p-6">
-            <h2 className="text-xl font-bold font-grotesk text-white mb-5 flex items-center gap-2">
-              <Activity size={20} className="text-cyan" />
-              Recent Activity
-            </h2>
-            {stats.activities.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-8">No activity yet</p>
-            ) : (
-              <div className="space-y-3">
-                {stats.activities.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-center gap-4 p-3 rounded-xl bg-dark/50 border border-white/5"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-cyan shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-300 capitalize">
-                        {activity.action.replace(/_/g, ' ')}
-                        {activity.details && typeof activity.details === 'object' &&
-                          'name' in activity.details &&
-                          <span className="text-white"> — {String(activity.details.name)}</span>
-                        }
-                      </p>
-                    </div>
-                    <span className="text-xs text-slate-600 shrink-0">
-                      {formatRelativeDate(activity.created_at)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* Control Center (Website Content / Banners / Audit) */}
+          <div>
+            <h2 className="text-xl font-bold font-grotesk text-white mb-4">Control Center</h2>
+            <AdminControlCenter activities={stats.activities} activityTotal={stats.activityTotal} />
           </div>
         </div>
       </div>

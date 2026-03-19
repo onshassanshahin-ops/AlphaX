@@ -7,6 +7,7 @@ import { PaperCard } from '@/components/public/PapersGrid';
 import { Search, Filter, BookOpen, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Paper } from '@/types';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { normalizePublicLang, t, type PublicLang } from '@/lib/public-lang';
 
 const FIELDS = [
   { value: 'all', label: 'All Fields' },
@@ -20,6 +21,7 @@ const FIELDS = [
 const LIMIT = 12;
 
 export default function KnowledgeBridgePage() {
+  const [lang, setLang] = useState<PublicLang>('en');
   const [papers, setPapers] = useState<Paper[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -50,6 +52,14 @@ export default function KnowledgeBridgePage() {
   }, [page, search, field]);
 
   useEffect(() => {
+    const fromCookie = document.cookie
+      .split('; ')
+      .find((row) => row.startsWith('public_lang='))
+      ?.split('=')[1];
+    setLang(normalizePublicLang(fromCookie));
+  }, []);
+
+  useEffect(() => {
     fetchPapers();
   }, [fetchPapers]);
 
@@ -62,7 +72,7 @@ export default function KnowledgeBridgePage() {
   const totalPages = Math.ceil(total / LIMIT);
 
   return (
-    <div className="min-h-screen flex flex-col bg-bg">
+    <div className="min-h-screen flex flex-col bg-bg" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <Navbar />
 
       {/* Hero */}
@@ -77,15 +87,18 @@ export default function KnowledgeBridgePage() {
                 📚
               </div>
               <span className="text-cyan text-sm font-semibold uppercase tracking-widest">
-                Knowledge Bridge
+                {t(lang, 'Knowledge Bridge', 'جسر المعرفة')}
               </span>
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold font-grotesk text-white mb-4">
-              Research in Arabic
+              {t(lang, 'Research in Arabic', 'أبحاث باللغة العربية')}
             </h1>
             <p className="text-slate-400 text-lg leading-relaxed">
-              We translate the world&apos;s most impactful research papers into Arabic —
-              making global science accessible to every Arabic-speaking researcher and student.
+              {t(
+                lang,
+                "We translate the world's most impactful research papers into Arabic — making global science accessible to every Arabic-speaking researcher and student.",
+                'نترجم أكثر الأوراق البحثية تأثيرًا في العالم إلى العربية، لنُتيح العلم العالمي لكل باحث وطالب ناطق بالعربية.'
+              )}
             </p>
           </div>
         </div>
@@ -102,7 +115,7 @@ export default function KnowledgeBridgePage() {
                   <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="text"
-                    placeholder="Search papers by title or keyword..."
+                    placeholder={t(lang, 'Search papers by title or keyword...', 'ابحث عن الأبحاث حسب العنوان أو الكلمات المفتاحية...')}
                     className="w-full form-input rounded-xl pl-11 pr-4 py-3 text-sm border border-cyan/20 bg-dark/80"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
@@ -124,7 +137,16 @@ export default function KnowledgeBridgePage() {
                           : 'bg-transparent text-slate-400 border-white/10 hover:border-white/20 hover:text-white'
                       }`}
                     >
-                      {f.label}
+                      {lang === 'ar'
+                        ? ({
+                            all: 'كل المجالات',
+                            medical: 'الطب',
+                            ai: 'الذكاء الاصطناعي والتقنية',
+                            stem: 'العلوم والتقنية والهندسة والرياضيات',
+                            neuroscience: 'علوم الأعصاب',
+                            other: 'أخرى',
+                          }[f.value] || f.label)
+                        : f.label}
                     </button>
                   ))}
                 </div>
@@ -141,14 +163,18 @@ export default function KnowledgeBridgePage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2 text-sm text-slate-400">
               <BookOpen size={16} />
-              {loading ? 'Loading...' : `${papers.length} paper${papers.length !== 1 ? 's' : ''} found`}
+              {loading
+                ? t(lang, 'Loading...', 'جاري التحميل...')
+                : lang === 'ar'
+                  ? `تم العثور على ${papers.length} بحث`
+                  : `${papers.length} paper${papers.length !== 1 ? 's' : ''} found`}
             </div>
             {search && (
               <button
                 onClick={() => { setSearch(''); setSearchInput(''); setPage(0); }}
                 className="text-xs text-slate-500 hover:text-cyan transition-colors"
               >
-                Clear search ×
+                {t(lang, 'Clear search ×', 'مسح البحث ×')}
               </button>
             )}
           </div>
@@ -160,16 +186,18 @@ export default function KnowledgeBridgePage() {
           ) : papers.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-5xl mb-4">📭</p>
-              <p className="text-xl font-grotesk text-slate-400 mb-2">No papers found</p>
+              <p className="text-xl font-grotesk text-slate-400 mb-2">{t(lang, 'No papers found', 'لم يتم العثور على أبحاث')}</p>
               <p className="text-sm text-slate-500">
-                {search ? 'Try adjusting your search terms.' : 'Our team is actively working on translations.'}
+                {search
+                  ? t(lang, 'Try adjusting your search terms.', 'جرّب تعديل كلمات البحث.')
+                  : t(lang, 'Our team is actively working on translations.', 'فريقنا يعمل حاليًا على المزيد من الترجمات.')}
               </p>
             </div>
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {papers.map((paper) => (
-                  <PaperCard key={paper.id} paper={paper} />
+                  <PaperCard key={paper.id} paper={paper} lang={lang} />
                 ))}
               </div>
 
@@ -210,7 +238,7 @@ export default function KnowledgeBridgePage() {
         </div>
       </section>
 
-      <Footer />
+      <Footer lang={lang} />
     </div>
   );
 }

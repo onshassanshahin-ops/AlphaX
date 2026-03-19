@@ -5,6 +5,7 @@ import PortalLayout from '@/components/layout/PortalLayout';
 import SuggestionsPanel from '@/components/portal/SuggestionsPanel';
 import BlockPulseStrip from '@/components/portal/BlockPulseStrip';
 import NextActionsCard from '@/components/portal/NextActionsCard';
+import BlockAIAssistant from '@/components/portal/BlockAIAssistant';
 import type { PortalSession } from '@/types';
 import { FileText, Users, Workflow, Send, CheckCircle2, ArrowRightLeft, Target } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -51,7 +52,9 @@ interface Member {
 interface KbTask {
   id: string;
   title: string;
+  deadline?: string | null;
   assigned_to?: string | null;
+  assignee?: { id: string; name: string } | null;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   subgroup_id: string;
 }
@@ -79,7 +82,7 @@ export default function KnowledgeBridgePortalPage() {
 
   const [newSubgroup, setNewSubgroup] = useState({ section: 'translation' as Section, name: '', leader_id: '' });
   const [newWorkflow, setNewWorkflow] = useState({ title_ar: '', title_en: '', translation_subgroup_id: '' });
-  const [newTask, setNewTask] = useState({ title: '', subgroup_id: '', assigned_to: '' });
+  const [newTask, setNewTask] = useState({ title: '', subgroup_id: '', assigned_to: '', deadline: '' });
   const [subgroupMemberMap, setSubgroupMemberMap] = useState<Record<string, string[]>>({});
   const [subgroupLeaderMap, setSubgroupLeaderMap] = useState<Record<string, string>>({});
   const [savingSubgroupId, setSavingSubgroupId] = useState<string | null>(null);
@@ -189,6 +192,11 @@ export default function KnowledgeBridgePortalPage() {
   );
 
   const activeWorkflow = workflows.find((w) => w.id === activeWorkflowId);
+  const workflowSubgroupOptions = subgroups.filter(
+    (s) =>
+      s.id === activeWorkflow?.translation_subgroup_id ||
+      s.id === activeWorkflow?.simplification_subgroup_id
+  );
   const inReviewWorkflows = workflows.filter((w) => w.status === 'translation_review' || w.status === 'simplification_review' || w.status === 'admin_review').length;
   const publishedWorkflows = workflows.filter((w) => w.status === 'published').length;
   const activeWorkflowTasks = tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress').length;
@@ -320,6 +328,7 @@ export default function KnowledgeBridgePortalPage() {
         subgroup_id: newTask.subgroup_id,
         title: newTask.title,
         assigned_to: newTask.assigned_to,
+        deadline: newTask.deadline || null,
       }),
     });
     const data = await res.json();
@@ -328,7 +337,7 @@ export default function KnowledgeBridgePortalPage() {
       return;
     }
     toast.success('Task created');
-    setNewTask({ title: '', subgroup_id: '', assigned_to: '' });
+    setNewTask({ title: '', subgroup_id: '', assigned_to: '', deadline: '' });
     const tasksRes = await fetch(`/api/knowledge-bridge/tasks?workflowId=${activeWorkflow.id}`);
     if (tasksRes.ok) {
       const tasksData = await tasksRes.json();
@@ -507,6 +516,8 @@ export default function KnowledgeBridgePortalPage() {
                     </div>
 
                     <div className="space-y-2">
+                      <BlockAIAssistant blockSlug="knowledge-bridge" blockName="Knowledge Bridge" />
+
                       <select
                         value={leaderId}
                         onChange={(e) => setSubgroupLeaderMap((prev) => ({ ...prev, [subgroup.id]: e.target.value }))}
@@ -618,7 +629,7 @@ export default function KnowledgeBridgePortalPage() {
           <div id="kb-tasks" className="glass-card rounded-2xl p-5 portal-reveal portal-stagger-3 panel-target">
             <h2 className="text-lg font-bold text-white flex items-center gap-2"><Send size={16} className="text-cyan" />Subgroup Tasks</h2>
             {canManageTasks && (
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-5 gap-2">
                 <input
                   value={newTask.title}
                   onChange={(e) => setNewTask((p) => ({ ...p, title: e.target.value }))}
@@ -631,7 +642,7 @@ export default function KnowledgeBridgePortalPage() {
                   className="form-input rounded-xl px-3 py-2 text-sm border border-cyan/20 bg-dark/80"
                 >
                   <option value="">Subgroup...</option>
-                  {subgroups.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  {workflowSubgroupOptions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
                 <select
                   value={newTask.assigned_to}
@@ -641,7 +652,13 @@ export default function KnowledgeBridgePortalPage() {
                   <option value="">Assign to...</option>
                   {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
-                <button onClick={createTask} className="px-3 py-2 rounded-lg bg-cyan/20 text-cyan border border-cyan/30 text-sm font-semibold">Create</button>
+                <input
+                  type="date"
+                  value={newTask.deadline}
+                  onChange={(e) => setNewTask((p) => ({ ...p, deadline: e.target.value }))}
+                  className="form-input rounded-xl px-3 py-2 text-sm border border-cyan/20 bg-dark/80"
+                />
+                <button onClick={createTask} className="px-3 py-2 rounded-lg bg-cyan/20 text-cyan border border-cyan/30 text-sm font-semibold md:col-span-5">Create</button>
               </div>
             )}
 
@@ -653,7 +670,11 @@ export default function KnowledgeBridgePortalPage() {
                   <div key={t.id} className="p-3 rounded-xl border border-white/10 bg-dark/50 flex items-center justify-between gap-2">
                     <div>
                       <p className="text-sm text-white">{t.title}</p>
-                      <p className="text-xs text-slate-500">{t.status}</p>
+                      <p className="text-xs text-slate-500">
+                        {t.status}
+                        {t.assignee?.name ? ` · ${t.assignee.name}` : ''}
+                        {t.deadline ? ` · due ${new Date(t.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+                      </p>
                     </div>
                     <select
                       value={t.status}

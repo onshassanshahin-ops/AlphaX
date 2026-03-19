@@ -9,6 +9,7 @@ import BlockMembersPanel from '@/components/portal/BlockMembersPanel';
 import BlockPulseStrip from '@/components/portal/BlockPulseStrip';
 import RoleJourneyPanel from '@/components/portal/RoleJourneyPanel';
 import NextActionsCard from '@/components/portal/NextActionsCard';
+import BlockAIAssistant from '@/components/portal/BlockAIAssistant';
 import { Upload, Sparkles, Compass, Target } from 'lucide-react';
 
 async function getBlockMembers(blockSlug: string) {
@@ -104,6 +105,8 @@ export default async function CreativeLabPortalPage() {
             ]}
           />
         </div>
+
+        <BlockAIAssistant blockSlug="creative-lab" blockName="Creative Lab" />
 
         {isNavigator ? (
           /* ── NAVIGATOR VIEW ── */

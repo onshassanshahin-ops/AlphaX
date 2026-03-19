@@ -7,6 +7,8 @@ import { FieldBadge } from '@/components/ui/Badge';
 import { Download, Calendar, User, Tag, ArrowLeft, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { getPublicLang } from '@/lib/public-lang.server';
+import { t } from '@/lib/public-lang';
 
 interface Props {
   params: { id: string };
@@ -42,12 +44,13 @@ async function getPaper(id: string) {
 }
 
 export default async function PaperDetailPage({ params }: Props) {
+  const lang = getPublicLang();
   const { paper } = await getPaper(params.id);
 
   if (!paper) notFound();
 
   return (
-    <div className="min-h-screen flex flex-col bg-bg">
+    <div className="min-h-screen flex flex-col bg-bg" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <Navbar />
 
       <main className="flex-1 pt-24 pb-20 px-4 sm:px-6 lg:px-8">
@@ -58,7 +61,7 @@ export default async function PaperDetailPage({ params }: Props) {
             className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-cyan transition-colors mb-8"
           >
             <ArrowLeft size={16} />
-            Back to Knowledge Bridge
+            {t(lang, 'Back to Knowledge Bridge', 'العودة إلى جسر المعرفة')}
           </Link>
 
           {/* Paper Card */}
@@ -88,7 +91,7 @@ export default async function PaperDetailPage({ params }: Props) {
                   <User size={16} className="text-cyan shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">
-                      Original Authors
+                      {t(lang, 'Original Authors', 'المؤلفون الأصليون')}
                     </p>
                     <p className="text-sm text-slate-300">{paper.original_authors}</p>
                   </div>
@@ -97,7 +100,7 @@ export default async function PaperDetailPage({ params }: Props) {
               <div className="flex items-start gap-2">
                 <Calendar size={16} className="text-cyan shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">Published</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">{t(lang, 'Published', 'تاريخ النشر')}</p>
                   <p className="text-sm text-slate-300">
                     {formatDate(paper.published_at || paper.created_at)}
                   </p>
@@ -106,7 +109,7 @@ export default async function PaperDetailPage({ params }: Props) {
               <div className="flex items-start gap-2">
                 <Download size={16} className="text-cyan shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">Downloads</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-0.5">{t(lang, 'Downloads', 'عدد التحميلات')}</p>
                   <p className="text-sm text-slate-300">{paper.download_count.toLocaleString()}</p>
                 </div>
               </div>
@@ -131,7 +134,7 @@ export default async function PaperDetailPage({ params }: Props) {
             {paper.description_en && (
               <div className="mb-6">
                 <h2 className="text-lg font-bold font-grotesk text-white mb-3">
-                  Abstract
+                  {t(lang, 'Abstract', 'الملخص')}
                 </h2>
                 <p className="text-slate-300 leading-relaxed bg-dark/30 rounded-xl p-5 border border-white/5">
                   {paper.description_en}
@@ -158,7 +161,7 @@ export default async function PaperDetailPage({ params }: Props) {
 
             {/* Download Button */}
             {paper.file_url && (
-              <DownloadButton paperId={paper.id} fileUrl={paper.file_url} />
+              <DownloadButton paperId={paper.id} fileUrl={paper.file_url} lang={lang} />
             )}
           </div>
 
@@ -188,13 +191,13 @@ export default async function PaperDetailPage({ params }: Props) {
         </div>
       </main>
 
-      <Footer />
+      <Footer lang={lang} />
     </div>
   );
 }
 
 // Client component for download tracking
-function DownloadButton({ paperId, fileUrl }: { paperId: string; fileUrl: string }) {
+function DownloadButton({ paperId, fileUrl, lang }: { paperId: string; fileUrl: string; lang: 'en' | 'ar' }) {
   return (
     <a
       href={fileUrl}
@@ -211,7 +214,7 @@ function DownloadButton({ paperId, fileUrl }: { paperId: string; fileUrl: string
       download
     >
       <Download size={18} />
-      Download Paper (PDF)
+      {t(lang, 'Download Paper (PDF)', 'تحميل البحث (PDF)')}
     </a>
   );
 }

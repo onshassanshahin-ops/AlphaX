@@ -7,27 +7,27 @@ import type { Alphanaut } from '@/types';
 
 const MILESTONES = [
   {
-    date: 'Early 2024',
+    date: 'Mid 2025',
     title: 'AlphaX Founded',
     description: 'AlphaX is established as a Syrian research collective by a group of passionate researchers determined to advance Arab science.',
   },
   {
-    date: 'Mid 2024',
+    date: 'Late 2025',
     title: 'First Block Launches',
     description: 'Knowledge Bridge begins operations, translating the first batch of research papers into Arabic.',
   },
   {
-    date: 'Late 2024',
+    date: 'Early 2026',
     title: 'Asclepius Lab Formed',
     description: 'Medical AI research team launches, focusing on building tools for Arabic medical education.',
   },
   {
-    date: 'Early 2025',
+    date: 'Early 2026',
     title: 'Platform Launch',
     description: 'AlphaX launches its public platform, making all translated papers freely accessible to the Arab research community.',
   },
   {
-    date: '2025',
+    date: 'Early 2026',
     title: 'Growing to 7 Blocks',
     description: 'All seven blocks fully operational: Knowledge Bridge, Asclepius Lab, Neuroscience, Creative Lab, Science Comm, Operations, and Engineering.',
   },

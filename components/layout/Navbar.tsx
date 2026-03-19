@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Search } from 'lucide-react';
+import { Menu, X, Search, Languages } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { normalizePublicLang, PUBLIC_LANG_COOKIE, type PublicLang } from '@/lib/public-lang';
 
 const navLinks = [
   { href: '/', label: 'Home' },
+  { href: '/impact', label: 'Impact' },
   { href: '/knowledge-bridge', label: 'Knowledge Bridge' },
   { href: '/research', label: 'Research' },
   { href: '/events', label: 'Events' },
@@ -21,7 +23,22 @@ const navLinks = [
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [lang, setLang] = useState<PublicLang>('en');
   const pathname = usePathname();
+
+  const applyDocumentDirection = (nextLang: PublicLang) => {
+    const dir = nextLang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = nextLang;
+    document.documentElement.dir = dir;
+    document.body.dir = dir;
+  };
+
+  const updateLanguage = (nextLang: PublicLang) => {
+    setLang(nextLang);
+    document.cookie = `${PUBLIC_LANG_COOKIE}=${nextLang}; path=/; max-age=31536000; samesite=lax`;
+    applyDocumentDirection(nextLang);
+    window.location.reload();
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -32,6 +49,16 @@ export default function Navbar() {
   useEffect(() => {
     setIsOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const fromCookie = document.cookie
+      .split('; ')
+      .find((row) => row.startsWith(`${PUBLIC_LANG_COOKIE}=`))
+      ?.split('=')[1];
+    const nextLang = normalizePublicLang(fromCookie);
+    setLang(nextLang);
+    applyDocumentDirection(nextLang);
+  }, []);
 
   return (
     <nav
@@ -100,6 +127,35 @@ export default function Navbar() {
           >
             {isOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
+        </div>
+      </div>
+
+      {/* Public language switcher (visitor pages only) */}
+      <div className={cn('border-t border-cyan/10', scrolled ? 'bg-dark/95 backdrop-blur-md' : 'bg-dark/40')}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan/20 bg-cyan/5 px-2 py-1">
+            <Languages size={13} className="text-cyan" />
+            <button
+              type="button"
+              onClick={() => updateLanguage('en')}
+              className={cn(
+                'text-xs px-3 py-1 rounded-full font-semibold transition-colors',
+                lang === 'en' ? 'bg-cyan/20 text-cyan' : 'text-slate-400 hover:text-white'
+              )}
+            >
+              English
+            </button>
+            <button
+              type="button"
+              onClick={() => updateLanguage('ar')}
+              className={cn(
+                'text-xs px-3 py-1 rounded-full font-semibold transition-colors',
+                lang === 'ar' ? 'bg-cyan/20 text-cyan' : 'text-slate-400 hover:text-white'
+              )}
+            >
+              العربية
+            </button>
+          </div>
         </div>
       </div>
 

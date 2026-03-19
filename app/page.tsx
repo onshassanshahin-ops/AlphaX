@@ -2,11 +2,14 @@ import { Suspense } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import HeroSection from '@/components/public/HeroSection';
+import type { HeroSettings } from '@/components/public/HeroSection';
 import StatsCounter from '@/components/public/StatsCounter';
 import PapersGrid from '@/components/public/PapersGrid';
 import ResearchGrid from '@/components/public/ResearchGrid';
 import { AnnouncementsGrid } from '@/components/public/AnnouncementCard';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getPublicLang } from '@/lib/public-lang.server';
+import { t } from '@/lib/public-lang';
 import Link from 'next/link';
 import { ArrowRight, Globe, Microscope, GraduationCap } from 'lucide-react';
 
@@ -14,7 +17,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 async function getHomeData() {
-  const [announcementsRes, papersRes, researchRes] = await Promise.all([
+  const [announcementsRes, papersRes, researchRes, settingsRes] = await Promise.all([
     supabaseAdmin
       .from('announcements')
       .select('*')
@@ -40,6 +43,7 @@ async function getHomeData() {
       .eq('is_public', true)
       .order('created_at', { ascending: false })
       .limit(3),
+    supabaseAdmin.from('site_settings').select('key, value').in('key', ['hero']),
   ]);
 
   // Get stats
@@ -50,11 +54,16 @@ async function getHomeData() {
   ]);
 
   const totalDownloads = (papers.data || []).reduce((sum, p) => sum + (p.download_count || 0), 0);
+  void totalDownloads;
+
+  const heroRow = (settingsRes.data || []).find((r) => r.key === 'hero');
+  const heroSettings: HeroSettings = heroRow?.value ?? {};
 
   return {
     announcements: announcementsRes.data || [],
     papers: papersRes.data || [],
     research: researchRes.data || [],
+    heroSettings,
     stats: {
       papers_translated: papers.count || 0,
       members: alphanauts.count || 0,
@@ -101,29 +110,33 @@ const pillars = [
 ];
 
 export default async function HomePage() {
-  const { announcements, papers, research, stats } = await getHomeData();
+  const lang = getPublicLang();
+  const { announcements, papers, research, stats, heroSettings } = await getHomeData();
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <Navbar />
 
       {/* Hero */}
-      <HeroSection />
+      <HeroSection settings={heroSettings} lang={lang} />
 
       {/* Pillars */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-bg">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-cyan text-sm font-semibold uppercase tracking-widest">
-              Our Mission
+              {t(lang, 'Our Mission', 'رسالتنا')}
             </span>
             <h2 className="text-4xl sm:text-5xl font-bold font-grotesk text-white mt-3 mb-4">
-              Three Pillars of{' '}
+              {t(lang, 'Three Pillars of ', 'الركائز الثلاث لـ ')}
               <span className="text-gradient">AlphaX</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              Everything we do is built on three foundational commitments to advancing
-              Arab scientific knowledge.
+              {t(
+                lang,
+                'Everything we do is built on three foundational commitments to advancing Arab scientific knowledge.',
+                'كل ما نقوم به مبني على ثلاثة التزامات أساسية لتطوير المعرفة العلمية العربية.'
+              )}
             </p>
           </div>
 
@@ -185,6 +198,7 @@ export default async function HomePage() {
                     style={{ color: pillar.color }}
                   >
                     Explore
+                    {lang === 'ar' ? ' استكشف' : ''}
                     <ArrowRight size={16} />
                   </div>
                 </div>
@@ -195,7 +209,7 @@ export default async function HomePage() {
       </section>
 
       {/* Stats */}
-      <StatsCounter stats={stats} />
+      <StatsCounter stats={stats} lang={lang} />
 
       {/* Announcements */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-bg">
@@ -204,21 +218,21 @@ export default async function HomePage() {
             <div>
               <span className="text-gold text-sm font-semibold uppercase tracking-widest">Latest</span>
               <h2 className="text-3xl sm:text-4xl font-bold font-grotesk text-white mt-1">
-                Announcements
+                {t(lang, 'Announcements', 'الإعلانات')}
               </h2>
             </div>
             <Link
               href="/announcements"
               className="hidden sm:flex items-center gap-2 text-sm text-cyan font-semibold hover:text-white transition-colors"
             >
-              View All
+              {t(lang, 'View All', 'عرض الكل')}
               <ArrowRight size={16} />
             </Link>
           </div>
-          <AnnouncementsGrid announcements={announcements} showViewAll={false} />
+          <AnnouncementsGrid announcements={announcements} showViewAll={false} lang={lang} />
           <div className="sm:hidden mt-6 text-center">
             <Link href="/announcements" className="text-cyan font-semibold text-sm">
-              View All Announcements →
+              {t(lang, 'View All Announcements →', 'عرض كل الإعلانات ←')}
             </Link>
           </div>
         </div>
@@ -231,19 +245,19 @@ export default async function HomePage() {
             <div>
               <span className="text-cyan text-sm font-semibold uppercase tracking-widest">Knowledge Bridge</span>
               <h2 className="text-3xl sm:text-4xl font-bold font-grotesk text-white mt-1">
-                Latest Translations
+                {t(lang, 'Latest Translations', 'أحدث الترجمات')}
               </h2>
             </div>
             <Link
               href="/knowledge-bridge"
               className="hidden sm:flex items-center gap-2 text-sm text-cyan font-semibold hover:text-white transition-colors"
             >
-              Browse All
+              {t(lang, 'Browse All', 'تصفح الكل')}
               <ArrowRight size={16} />
             </Link>
           </div>
           <Suspense fallback={<div className="text-slate-500 text-center py-12">Loading papers...</div>}>
-            <PapersGrid papers={papers as any[]} showViewAll={true} />
+            <PapersGrid papers={papers as any[]} showViewAll={true} lang={lang} />
           </Suspense>
         </div>
       </section>
@@ -255,14 +269,14 @@ export default async function HomePage() {
             <div>
               <span className="text-purple text-sm font-semibold uppercase tracking-widest">Research</span>
               <h2 className="text-3xl sm:text-4xl font-bold font-grotesk text-white mt-1">
-                Latest Publications
+                {t(lang, 'Latest Publications', 'أحدث المنشورات')}
               </h2>
             </div>
             <Link
               href="/research"
               className="hidden sm:flex items-center gap-2 text-sm text-cyan font-semibold hover:text-white transition-colors"
             >
-              View All
+              {t(lang, 'View All', 'عرض الكل')}
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -276,14 +290,17 @@ export default async function HomePage() {
         <div className="absolute inset-0 hero-grid opacity-20 pointer-events-none" />
 
         <div className="max-w-4xl mx-auto text-center relative">
-          <span className="text-gold text-sm font-semibold uppercase tracking-widest">Join the Movement</span>
+          <span className="text-gold text-sm font-semibold uppercase tracking-widest">{t(lang, 'Join the Movement', 'انضم إلى الحركة')}</span>
           <h2 className="text-4xl sm:text-5xl font-bold font-grotesk text-white mt-4 mb-6">
-            Become an{' '}
+            {t(lang, 'Become an ', 'كن ')}
             <span className="text-gradient">Alphanaut</span>
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Whether you&apos;re a researcher, designer, developer, or communicator — there&apos;s
-            a place for you in AlphaX. Join us in building the future of Arab science.
+            {t(
+              lang,
+              "Whether you're a researcher, designer, developer, or communicator — there's a place for you in AlphaX. Join us in building the future of Arab science.",
+              'سواء كنت باحثًا أو مصممًا أو مطورًا أو صانع محتوى، فمكانك موجود في AlphaX. انضم إلينا لصناعة مستقبل العلم العربي.'
+            )}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -291,14 +308,14 @@ export default async function HomePage() {
               href="/join"
               className="btn-primary flex items-center gap-2 text-base px-8 py-4"
             >
-              Apply Now
+              {t(lang, 'Apply Now', 'قدّم الآن')}
               <ArrowRight size={18} />
             </Link>
             <Link
               href="/orientation"
               className="px-8 py-4 rounded-lg border border-white/10 text-slate-300 hover:text-white hover:border-white/30 transition-all font-semibold"
             >
-              Read Orientation Manual
+              {t(lang, 'Read Orientation Manual', 'اقرأ الدليل التعريفي')}
             </Link>
           </div>
 
@@ -318,7 +335,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <Footer />
+      <Footer lang={lang} />
     </div>
   );
 }

@@ -7,6 +7,8 @@ import { formatDate, formatRelativeDate } from '@/lib/utils';
 import { Calendar, Clock, Pin, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { getPublicLang } from '@/lib/public-lang.server';
+import { t } from '@/lib/public-lang';
 
 interface Props { params: { id: string } }
 
@@ -17,6 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function AnnouncementDetailPage({ params }: Props) {
+  const lang = getPublicLang();
   const { data: announcement } = await supabaseAdmin
     .from('announcements')
     .select('*')
@@ -27,13 +30,13 @@ export default async function AnnouncementDetailPage({ params }: Props) {
   if (!announcement) notFound();
 
   return (
-    <div className="min-h-screen flex flex-col bg-bg">
+    <div className="min-h-screen flex flex-col bg-bg" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <Navbar />
       <main className="flex-1 pt-24 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <Link href="/announcements" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-cyan transition-colors mb-8">
             <ArrowLeft size={16} />
-            Back to Announcements
+            {t(lang, 'Back to Announcements', 'العودة إلى الإعلانات')}
           </Link>
 
           <div className="glass-card rounded-2xl p-8">
@@ -41,7 +44,7 @@ export default async function AnnouncementDetailPage({ params }: Props) {
               <AnnouncementTypeBadge type={announcement.type} />
               {announcement.is_pinned && (
                 <span className="flex items-center gap-1 text-xs text-gold">
-                  <Pin size={11} /> Pinned
+                  <Pin size={11} /> {lang === 'ar' ? 'مثبّت' : 'Pinned'}
                 </span>
               )}
             </div>
@@ -70,14 +73,14 @@ export default async function AnnouncementDetailPage({ params }: Props) {
             {announcement.expires_at && (
               <div className="mt-8 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
                 <p className="text-sm text-yellow-400">
-                  This announcement expires on {formatDate(announcement.expires_at)}.
+                  {t(lang, 'This announcement expires on', 'ينتهي هذا الإعلان في')} {formatDate(announcement.expires_at)}.
                 </p>
               </div>
             )}
           </div>
         </div>
       </main>
-      <Footer />
+      <Footer lang={lang} />
     </div>
   );
 }

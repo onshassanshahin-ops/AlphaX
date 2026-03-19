@@ -9,6 +9,7 @@ import SuggestionsPanel from '@/components/portal/SuggestionsPanel';
 import BlockPulseStrip from '@/components/portal/BlockPulseStrip';
 import RoleJourneyPanel from '@/components/portal/RoleJourneyPanel';
 import NextActionsCard from '@/components/portal/NextActionsCard';
+import BlockAIAssistant from '@/components/portal/BlockAIAssistant';
 import Button from '@/components/ui/Button';
 import { Radio, Plus, Send, Megaphone, Sparkles, Target, Waves } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -119,6 +120,8 @@ export default function ScienceCommPortalPage() {
             ]}
           />
         </div>
+
+        <BlockAIAssistant blockSlug="science-comm" blockName="Science Communication" />
 
         <RoleJourneyPanel
           title={isNavigator ? 'Navigator Broadcast Studio' : 'Alphanaut Story Experience'}

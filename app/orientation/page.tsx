@@ -2,10 +2,13 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, Users, Star, Shield, Lightbulb, Target } from 'lucide-react';
+import { getPublicLang } from '@/lib/public-lang.server';
+import { t } from '@/lib/public-lang';
 
 export default function OrientationPage() {
+  const lang = getPublicLang();
   return (
-    <div className="min-h-screen flex flex-col bg-bg">
+    <div className="min-h-screen flex flex-col bg-bg" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <Navbar />
 
       {/* Hero */}
@@ -18,15 +21,18 @@ export default function OrientationPage() {
         <div className="max-w-4xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan/30 bg-cyan/10 text-cyan text-sm font-medium mb-6">
             <BookOpen size={14} />
-            Alphanaut Orientation Manual
+            {t(lang, 'Alphanaut Orientation Manual', 'الدليل التعريفي للألفانات')}
           </div>
           <h1 className="text-5xl sm:text-6xl font-bold font-grotesk text-white mb-6 leading-tight">
-            Welcome to{' '}
+            {t(lang, 'Welcome to ', 'مرحبًا بك في ')}
             <span className="text-gradient">AlphaX</span>
           </h1>
           <p className="text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
-            This is your complete guide to becoming an Alphanaut — our values, structure,
-            responsibilities, and what it means to be part of this collective.
+            {t(
+              lang,
+              'This is your complete guide to becoming an Alphanaut — our values, structure, responsibilities, and what it means to be part of this collective.',
+              'هذا دليلك الكامل لتصبح ألفانات: قيمنا، هيكلنا، المسؤوليات، ومعنى الانضمام إلى هذا التجمع.'
+            )}
           </p>
         </div>
       </section>
@@ -35,19 +41,19 @@ export default function OrientationPage() {
       <section className="px-4 sm:px-6 lg:px-8 pb-8">
         <div className="max-w-4xl mx-auto">
           <div className="glass-card rounded-2xl p-6">
-            <h2 className="text-lg font-bold font-grotesk text-white mb-4">Table of Contents</h2>
+            <h2 className="text-lg font-bold font-grotesk text-white mb-4">{t(lang, 'Table of Contents', 'جدول المحتويات')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
-                { id: 'what-is-alphax', label: '1. What is AlphaX?' },
-                { id: 'our-vision', label: '2. Our Vision & Mission' },
-                { id: 'three-pillars', label: '3. The Three Pillars' },
-                { id: 'blocks', label: '4. Blocks & Structure' },
-                { id: 'roles', label: '5. Roles & Hierarchy' },
-                { id: 'becoming-alphanaut', label: '6. Becoming an Alphanaut' },
-                { id: 'responsibilities', label: '7. Your Responsibilities' },
-                { id: 'values', label: '8. Core Values' },
-                { id: 'code-of-conduct', label: '9. Code of Conduct' },
-                { id: 'faq', label: '10. FAQ' },
+                { id: 'what-is-alphax', label: t(lang, '1. What is AlphaX?', '1. ما هو AlphaX؟') },
+                { id: 'our-vision', label: t(lang, '2. Our Vision & Mission', '2. الرؤية والرسالة') },
+                { id: 'three-pillars', label: t(lang, '3. The Three Pillars', '3. الركائز الثلاث') },
+                { id: 'blocks', label: t(lang, '4. Blocks & Structure', '4. الفرق والهيكل') },
+                { id: 'roles', label: t(lang, '5. Roles & Hierarchy', '5. الأدوار والهيكلية') },
+                { id: 'becoming-alphanaut', label: t(lang, '6. Becoming an Alphanaut', '6. كيف تصبح ألفانات') },
+                { id: 'responsibilities', label: t(lang, '7. Your Responsibilities', '7. مسؤولياتك') },
+                { id: 'values', label: t(lang, '8. Core Values', '8. القيم الأساسية') },
+                { id: 'code-of-conduct', label: t(lang, '9. Code of Conduct', '9. مدونة السلوك') },
+                { id: 'faq', label: t(lang, '10. FAQ', '10. الأسئلة الشائعة') },
               ].map((item) => (
                 <a
                   key={item.id}
@@ -509,7 +515,7 @@ When you join AlphaX, you don't just get a title — you get a curriculum.`,
         </div>
       </section>
 
-      <Footer />
+      <Footer lang={lang} />
     </div>
   );
 }

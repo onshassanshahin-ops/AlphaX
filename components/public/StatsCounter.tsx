@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { SiteStats } from '@/types';
+import type { PublicLang } from '@/lib/public-lang';
+import { t } from '@/lib/public-lang';
 
 function AnimatedNumber({ target, suffix = '' }: { target: number; suffix?: string }) {
   const [value, setValue] = useState(0);
@@ -44,42 +46,51 @@ function AnimatedNumber({ target, suffix = '' }: { target: number; suffix?: stri
 
 interface StatsCounterProps {
   stats: SiteStats;
+  lang?: PublicLang;
 }
 
 const statItems = [
   {
     key: 'papers_translated' as keyof SiteStats,
-    label: 'Papers Translated',
+    labelEn: 'Papers Translated',
+    labelAr: 'أبحاث مترجمة',
     suffix: '+',
     icon: '📄',
-    description: 'Global research made accessible in Arabic',
+    descriptionEn: 'Global research made accessible in Arabic',
+    descriptionAr: 'أبحاث عالمية متاحة باللغة العربية',
   },
   {
     key: 'members' as keyof SiteStats,
-    label: 'Alphanauts',
+    labelEn: 'Alphanauts',
+    labelAr: 'ألفانات',
     suffix: '+',
     icon: '🚀',
-    description: 'Researchers and contributors across Syria',
+    descriptionEn: 'Researchers and contributors across Syria',
+    descriptionAr: 'باحثون ومساهمون من مختلف أنحاء سوريا',
   },
   {
     key: 'publications' as keyof SiteStats,
-    label: 'Publications',
+    labelEn: 'Publications',
+    labelAr: 'منشورات',
     suffix: '',
     icon: '📊',
-    description: 'Original research submitted or published',
+    descriptionEn: 'Original research submitted or published',
+    descriptionAr: 'أبحاث أصلية مقدّمة أو منشورة',
   },
   {
     key: 'tools' as keyof SiteStats,
-    label: 'Tools Built',
+    labelEn: 'Tools Built',
+    labelAr: 'أدوات مطوّرة',
     suffix: '',
     icon: '🛠️',
-    description: 'Open-source tools for the Arab research community',
+    descriptionEn: 'Open-source tools for the Arab research community',
+    descriptionAr: 'أدوات مفتوحة المصدر لمجتمع البحث العربي',
   },
 ];
 
-export default function StatsCounter({ stats }: StatsCounterProps) {
+export default function StatsCounter({ stats, lang = 'en' }: StatsCounterProps) {
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <section className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-r from-navy/30 via-dark to-navy/30 pointer-events-none" />
       <div className="section-divider absolute top-0 left-0 right-0 w-full" />
@@ -88,10 +99,10 @@ export default function StatsCounter({ stats }: StatsCounterProps) {
       <div className="max-w-7xl mx-auto relative">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold font-grotesk text-white mb-3">
-            AlphaX by the Numbers
+            {t(lang, 'AlphaX by the Numbers', 'أرقام AlphaX')}
           </h2>
           <p className="text-slate-400 max-w-xl mx-auto">
-            Growing every day, one paper, one researcher, one discovery at a time.
+            {t(lang, 'Growing every day, one paper, one researcher, one discovery at a time.', 'ننمو كل يوم: ورقةً بعد ورقة، وباحثًا بعد باحث، واكتشافًا بعد اكتشاف.')}
           </p>
         </div>
 
@@ -105,9 +116,9 @@ export default function StatsCounter({ stats }: StatsCounterProps) {
               <div className="stat-number text-4xl sm:text-5xl mb-1 font-grotesk">
                 <AnimatedNumber target={stats[item.key] as number} suffix={item.suffix} />
               </div>
-              <p className="text-white font-semibold mb-1">{item.label}</p>
+              <p className="text-white font-semibold mb-1">{t(lang, item.labelEn, item.labelAr)}</p>
               <p className="text-xs text-slate-500 leading-relaxed hidden sm:block">
-                {item.description}
+                {t(lang, item.descriptionEn, item.descriptionAr)}
               </p>
             </div>
           ))}
